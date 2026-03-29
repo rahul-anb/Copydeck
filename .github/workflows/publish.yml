@@ -7,12 +7,16 @@ on:
 
 jobs:
   build:
-    name: Build wheel (${{ matrix.target }})
-    runs-on: ubuntu-22.04
+    name: Build wheel (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
 
     strategy:
       matrix:
-        target: [x86_64, aarch64]
+        include:
+          - arch: amd64
+            runner: ubuntu-22.04
+          - arch: arm64
+            runner: ubuntu-22.04-arm
 
     steps:
       - uses: actions/checkout@v4
@@ -24,14 +28,13 @@ jobs:
 
       - uses: PyO3/maturin-action@v1
         with:
-          target:  ${{ matrix.target }}
           command: build
           args:    --release --strip --features ui
 
       - name: Upload wheels as artefacts
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.target }}
+          name: wheels-${{ matrix.arch }}
           path: target/wheels/
 
   publish:
