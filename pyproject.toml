@@ -1,0 +1,32 @@
+[build-system]
+requires      = ["maturin>=1.5,<2"]
+build-backend = "maturin"
+
+[project]
+name        = "copydeck"
+version     = "0.1.0"
+description = "A lightweight clipboard manager for Linux with persistent pinned items"
+readme      = "README.md"
+license     = { file = "LICENSE" }
+keywords    = ["clipboard", "linux", "gtk", "productivity"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: X11 Applications :: GTK",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Rust",
+    "Topic :: Desktop Environment",
+    "Topic :: Utilities",
+]
+
+# CopyDeck has no Python runtime dependencies — it is a pure Rust binary
+# distributed as a platform wheel.
+dependencies = []
+
+[tool.maturin]
+# "bin" mode: maturin packages the compiled Rust binary into a Python wheel.
+# Users run `pip install copydeck` and get the binary on their PATH —
+# no Rust compiler, no cargo, no build step required on the user's machine.
+bindings = "bin"
+strip    = true

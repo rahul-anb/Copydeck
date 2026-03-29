@@ -1,0 +1,88 @@
+[package]
+name        = "copydeck"
+version     = "0.1.0"
+edition     = "2021"
+rust-version = "1.75"
+description = "A lightweight clipboard manager for Linux with persistent pinned items"
+license     = "MIT"
+repository  = "https://github.com/your-org/copydeck"
+keywords    = ["clipboard", "linux", "gtk", "productivity"]
+categories  = ["command-line-utilities"]
+readme      = "README.md"
+
+# The public library — consumed by integration tests and future GUI crates.
+[lib]
+name = "copydeck"
+path = "src/lib.rs"
+
+# The installed binary.
+[[bin]]
+name = "copydeck"
+path = "src/main.rs"
+
+# ── Runtime dependencies ──────────────────────────────────────────────────────
+
+[dependencies]
+# CLI argument parsing
+clap = { version = "4", features = ["derive"] }
+
+# Ergonomic error handling for application code
+anyhow = "1"
+
+# Structured, levelled logging
+tracing            = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# Config serialisation (TOML)
+serde = { version = "1", features = ["derive"] }
+toml  = "0.8"
+
+# SQLite — `bundled` compiles sqlite3 from source; no system libsqlite3 needed
+rusqlite = { version = "0.31", features = ["bundled"] }
+
+# Clipboard access — unsafe impl Send on Linux; supports X11 (xcb) + Wayland
+arboard = "3"
+
+# SHA-256 for clipboard deduplication
+sha2 = "0.10"
+
+# XDG base directory paths (config, data, cache)
+dirs = "5"
+
+# JSON serialisation for IPC wire protocol and pin export/import
+serde_json = "1"
+
+# Global hotkey registration (X11 XGrabKey + Wayland portal)
+global-hotkey = "0.6"
+
+# Keyboard + mouse input injection — optional; requires libxdo-dev on X11
+# Enable with: cargo build --features enigo-paste
+# Without this feature, paste injection falls back to xdotool/ydotool subprocesses.
+enigo = { version = "0.2", optional = true }
+
+# GTK4 UI — optional; requires libgtk-4-dev on the build machine.
+# Enable with: cargo build --features ui
+gtk4 = { version = "0.7", features = ["v4_6"], optional = true }
+
+# ── Feature flags ─────────────────────────────────────────────────────────────
+
+[features]
+# Enable the GTK4 popup UI.  Requires libgtk-4-dev to be installed.
+ui = ["dep:gtk4"]
+# Use enigo for in-process paste injection instead of xdotool subprocess.
+# Requires libxdo-dev: sudo apt install libxdo-dev
+enigo-paste = ["dep:enigo"]
+
+# ── Dev / test dependencies ───────────────────────────────────────────────────
+
+[dev-dependencies]
+# Property-based testing — used in Sprint 9
+# proptest = "1"   # uncomment when needed
+
+# ── Profile tweaks ────────────────────────────────────────────────────────────
+
+[profile.release]
+strip    = true   # strip debug symbols from the distributed binary
+opt-level = 3
+lto      = true
+codegen-units = 1

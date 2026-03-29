@@ -1,0 +1,30 @@
+# Rust build output
+/target/
+
+# Cargo lock is committed for binaries (omit for libraries)
+# Cargo.lock
+
+# Generated Python packaging artefacts
+dist/
+*.egg-info/
+__pycache__/
+*.whl
+*.tar.gz
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS artefacts
+.DS_Store
+Thumbs.db
+
+# Local environment overrides
+.env
+.env.local
+
+# Local notes
+sprint-plan.md
+SPRINT-BUGS.md

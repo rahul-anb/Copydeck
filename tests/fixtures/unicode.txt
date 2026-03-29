@@ -1,0 +1,10 @@
+こんにちは世界 🌍
+Привет, мир! 🎉
+中文测试：剪贴板管理器
+مرحبا بالعالم
+Ünïcödé tëst: café, naïve, résumé
+Emoji: 🦀 🔥 ✅ 🚀 💡 🎯
+Mathematical: ∑∫∂ ∈ ∉ ∞ ≠ ≤ ≥
+Box drawing: ┌─┬─┐ │ │ │ └─┴─┘
+Japanese: 「clipboard」→「クリップボード」
+Mixed: Hello, 世界! 🌏 Привет!

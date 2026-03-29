@@ -1,0 +1,57 @@
+name: Publish to PyPI
+
+# Triggered when a version tag is pushed, e.g. `git tag v0.1.0 && git push --tags`.
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    name: Build wheel (${{ matrix.target }})
+    runs-on: ubuntu-22.04
+
+    strategy:
+      matrix:
+        target: [x86_64, aarch64]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y pkg-config
+
+      - uses: PyO3/maturin-action@v1
+        with:
+          target:  ${{ matrix.target }}
+          command: build
+          args:    --release --strip
+
+      - name: Upload wheels as artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.target }}
+          path: target/wheels/
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-22.04
+    environment: pypi         # requires a PyPI Trusted Publisher environment
+
+    permissions:
+      id-token: write         # required for PyPI OIDC Trusted Publishing
+
+    steps:
+      - name: Download all wheel artefacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist/
+
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: upload
+          args:    --non-interactive --skip-existing dist/*

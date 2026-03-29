@@ -1,0 +1,7 @@
+# Cargo workspace configuration.
+#
+# lld (LLVM linker) produces SIGBUS when linking heavy doctest binaries on this
+# machine (rusqlite + arboard + global-hotkey statically linked).  Switching to
+# the GNU gold linker avoids the crash without affecting build output.
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "link-arg=-fuse-ld=gold"]

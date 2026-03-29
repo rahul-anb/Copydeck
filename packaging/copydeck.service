@@ -1,0 +1,36 @@
+# CopyDeck systemd user service
+#
+# Install:
+#   copydeck install-service        (recommended — handles Wayland setup too)
+#
+#   Or manually:
+#   cp packaging/copydeck.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now copydeck
+#
+# Logs:
+#   journalctl --user -u copydeck -f
+
+[Unit]
+Description=CopyDeck Clipboard Manager
+Documentation=https://github.com/your-org/copydeck
+# Start after the graphical session is ready (display server available).
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/copydeck start
+Restart=on-failure
+RestartSec=3
+
+# Forward DISPLAY / WAYLAND_DISPLAY from the user session so that clipboard
+# access and GTK initialisation work correctly.
+PassEnvironment=DISPLAY WAYLAND_DISPLAY DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR
+
+# Write logs at INFO level by default.
+# Override by setting COPYDECK_LOG=debug in your shell environment.
+Environment=COPYDECK_LOG=copydeck=info
+
+[Install]
+WantedBy=graphical-session.target

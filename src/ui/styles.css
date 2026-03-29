@@ -1,0 +1,127 @@
+/* CopyDeck popup stylesheet
+ *
+ * Loaded at runtime via CssProvider::load_from_data(include_bytes!("styles.css")).
+ * Uses GTK4 CSS — a subset of CSS3.
+ */
+
+/* ── Root window ─────────────────────────────────────────────────────────── */
+
+window.copydeck-popup {
+    background-color: @window_bg_color;
+    border-radius: 12px;
+    border: 1px solid @borders;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* ── Search entry ─────────────────────────────────────────────────────────── */
+
+.search-entry-row {
+    padding: 12px 14px 8px 14px;
+}
+
+searchentry {
+    border-radius: 8px;
+    font-size: 14px;
+    padding: 4px 8px;
+    min-height: 36px;
+}
+
+/* ── Section headers (PINNED / RECENT) ───────────────────────────────────── */
+
+.section-header {
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1.5px;
+    color: alpha(@foreground_color, 0.45);
+    padding: 8px 14px 4px 14px;
+}
+
+/* ── List boxes ───────────────────────────────────────────────────────────── */
+
+listbox {
+    background-color: transparent;
+}
+
+listbox row {
+    border-radius: 8px;
+    margin: 2px 8px;
+    padding: 0;
+}
+
+listbox row:selected {
+    background-color: @accent_bg_color;
+}
+
+listbox row:hover:not(:selected) {
+    background-color: alpha(@foreground_color, 0.07);
+}
+
+/* ── Row contents ─────────────────────────────────────────────────────────── */
+
+.row-box {
+    padding: 8px 12px;
+    min-height: 28px;
+}
+
+.timestamp-label {
+    font-size: 11px;
+    color: alpha(@foreground_color, 0.45);
+    min-width: 56px;
+    margin-right: 6px;
+}
+
+.source-badge {
+    font-size: 11px;
+    font-family: monospace;
+    color: alpha(@foreground_color, 0.4);
+    min-width: 26px;
+    margin-right: 6px;
+}
+
+.source-badge.super-c {
+    color: @accent_color;
+}
+
+.content-label {
+    font-family: monospace;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.content-label.pinned {
+    font-weight: bold;
+}
+
+.overflow-label {
+    font-size: 11px;
+    color: alpha(@foreground_color, 0.45);
+    font-style: italic;
+    margin-top: 2px;
+}
+
+/* ── Keyboard shortcut hint bar ───────────────────────────────────────────── */
+
+.hint-bar {
+    padding: 6px 14px 8px 14px;
+    border-top: 1px solid alpha(@borders, 0.5);
+}
+
+.hint-label {
+    font-size: 11px;
+    color: alpha(@foreground_color, 0.4);
+    font-family: monospace;
+}
+
+/* ── Scrolled windows ─────────────────────────────────────────────────────── */
+
+scrolledwindow {
+    background-color: transparent;
+}
+
+/* ── Separator ────────────────────────────────────────────────────────────── */
+
+separator {
+    background-color: alpha(@borders, 0.5);
+    margin: 2px 10px;
+    min-height: 1px;
+}
