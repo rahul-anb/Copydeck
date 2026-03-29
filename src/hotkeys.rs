@@ -27,8 +27,8 @@
 //! ```
 
 use anyhow::{bail, Context, Result};
-use global_hotkey::{GlobalHotKeyEvent, GlobalHotKeyManager, HotKeyState};
 use global_hotkey::hotkey::{Code, HotKey, Modifiers};
+use global_hotkey::{GlobalHotKeyEvent, GlobalHotKeyManager, HotKeyState};
 use std::collections::HashMap;
 use tracing::info;
 
@@ -50,9 +50,9 @@ pub enum HotkeyAction {
 /// The manager owns a [`GlobalHotKeyManager`] and maintains a map from
 /// hotkey IDs to [`HotkeyAction`]s so events can be dispatched.
 pub struct HotkeyManager {
-    inner:    GlobalHotKeyManager,
-    actions:  HashMap<u32, HotkeyAction>,
-    hotkeys:  Vec<HotKey>,
+    inner: GlobalHotKeyManager,
+    actions: HashMap<u32, HotkeyAction>,
+    hotkeys: Vec<HotKey>,
 }
 
 impl HotkeyManager {
@@ -63,8 +63,7 @@ impl HotkeyManager {
     /// Fails when no display server is available (headless environments) or
     /// when the underlying platform library cannot be initialised.
     pub fn new() -> Result<Self> {
-        let inner = GlobalHotKeyManager::new()
-            .context("initialising global hotkey manager")?;
+        let inner = GlobalHotKeyManager::new().context("initialising global hotkey manager")?;
         Ok(Self {
             inner,
             actions: HashMap::new(),
@@ -83,16 +82,14 @@ impl HotkeyManager {
     /// Returns an error when the combo cannot be parsed or when the hotkey
     /// is already grabbed by another application.
     pub fn register(&mut self, combo: &str, action: HotkeyAction) -> Result<()> {
-        let hotkey = parse_combo(combo)
-            .with_context(|| format!("parsing hotkey combo {combo:?}"))?;
+        let hotkey =
+            parse_combo(combo).with_context(|| format!("parsing hotkey combo {combo:?}"))?;
 
-        self.inner
-            .register(hotkey)
-            .with_context(|| {
-                format!(
-                    "registering hotkey {combo:?} — another application may already hold this key grab"
-                )
-            })?;
+        self.inner.register(hotkey).with_context(|| {
+            format!(
+                "registering hotkey {combo:?} — another application may already hold this key grab"
+            )
+        })?;
 
         let id = hotkey.id();
         self.actions.insert(id, action);
@@ -129,27 +126,36 @@ impl HotkeyManager {
 /// Parse a combo string like `"super+c"` into a [`HotKey`].
 pub(crate) fn parse_combo(combo: &str) -> Result<HotKey> {
     let mut modifiers = Modifiers::empty();
-    let mut key_code:  Option<Code> = None;
+    let mut key_code: Option<Code> = None;
 
-    for token in combo.split('+').map(str::trim).map(|s| s.to_ascii_lowercase()) {
+    for token in combo
+        .split('+')
+        .map(str::trim)
+        .map(|s| s.to_ascii_lowercase())
+    {
         match token.as_str() {
-            "ctrl"  | "control" => modifiers |= Modifiers::CONTROL,
-            "shift"             => modifiers |= Modifiers::SHIFT,
-            "alt"               => modifiers |= Modifiers::ALT,
+            "ctrl" | "control" => modifiers |= Modifiers::CONTROL,
+            "shift" => modifiers |= Modifiers::SHIFT,
+            "alt" => modifiers |= Modifiers::ALT,
             "super" | "win" | "meta" => modifiers |= Modifiers::SUPER,
             other => {
                 if key_code.is_some() {
                     bail!("multiple key codes in combo {combo:?}");
                 }
-                key_code = Some(parse_key_code(other).with_context(|| {
-                    format!("unrecognised key {other:?} in combo {combo:?}")
-                })?);
+                key_code =
+                    Some(parse_key_code(other).with_context(|| {
+                        format!("unrecognised key {other:?} in combo {combo:?}")
+                    })?);
             }
         }
     }
 
     let code = key_code.context("combo has no key code (e.g. 'super+c')")?;
-    let mods = if modifiers.is_empty() { None } else { Some(modifiers) };
+    let mods = if modifiers.is_empty() {
+        None
+    } else {
+        Some(modifiers)
+    };
     Ok(HotKey::new(mods, code))
 }
 
@@ -157,44 +163,75 @@ pub(crate) fn parse_combo(combo: &str) -> Result<HotKey> {
 fn parse_key_code(token: &str) -> Result<Code> {
     let code = match token {
         // Letters
-        "a" => Code::KeyA, "b" => Code::KeyB, "c" => Code::KeyC,
-        "d" => Code::KeyD, "e" => Code::KeyE, "f" => Code::KeyF,
-        "g" => Code::KeyG, "h" => Code::KeyH, "i" => Code::KeyI,
-        "j" => Code::KeyJ, "k" => Code::KeyK, "l" => Code::KeyL,
-        "m" => Code::KeyM, "n" => Code::KeyN, "o" => Code::KeyO,
-        "p" => Code::KeyP, "q" => Code::KeyQ, "r" => Code::KeyR,
-        "s" => Code::KeyS, "t" => Code::KeyT, "u" => Code::KeyU,
-        "v" => Code::KeyV, "w" => Code::KeyW, "x" => Code::KeyX,
-        "y" => Code::KeyY, "z" => Code::KeyZ,
+        "a" => Code::KeyA,
+        "b" => Code::KeyB,
+        "c" => Code::KeyC,
+        "d" => Code::KeyD,
+        "e" => Code::KeyE,
+        "f" => Code::KeyF,
+        "g" => Code::KeyG,
+        "h" => Code::KeyH,
+        "i" => Code::KeyI,
+        "j" => Code::KeyJ,
+        "k" => Code::KeyK,
+        "l" => Code::KeyL,
+        "m" => Code::KeyM,
+        "n" => Code::KeyN,
+        "o" => Code::KeyO,
+        "p" => Code::KeyP,
+        "q" => Code::KeyQ,
+        "r" => Code::KeyR,
+        "s" => Code::KeyS,
+        "t" => Code::KeyT,
+        "u" => Code::KeyU,
+        "v" => Code::KeyV,
+        "w" => Code::KeyW,
+        "x" => Code::KeyX,
+        "y" => Code::KeyY,
+        "z" => Code::KeyZ,
 
         // Digits
-        "0" => Code::Digit0, "1" => Code::Digit1, "2" => Code::Digit2,
-        "3" => Code::Digit3, "4" => Code::Digit4, "5" => Code::Digit5,
-        "6" => Code::Digit6, "7" => Code::Digit7, "8" => Code::Digit8,
+        "0" => Code::Digit0,
+        "1" => Code::Digit1,
+        "2" => Code::Digit2,
+        "3" => Code::Digit3,
+        "4" => Code::Digit4,
+        "5" => Code::Digit5,
+        "6" => Code::Digit6,
+        "7" => Code::Digit7,
+        "8" => Code::Digit8,
         "9" => Code::Digit9,
 
         // Function keys
-        "f1"  => Code::F1,  "f2"  => Code::F2,  "f3"  => Code::F3,
-        "f4"  => Code::F4,  "f5"  => Code::F5,  "f6"  => Code::F6,
-        "f7"  => Code::F7,  "f8"  => Code::F8,  "f9"  => Code::F9,
-        "f10" => Code::F10, "f11" => Code::F11, "f12" => Code::F12,
+        "f1" => Code::F1,
+        "f2" => Code::F2,
+        "f3" => Code::F3,
+        "f4" => Code::F4,
+        "f5" => Code::F5,
+        "f6" => Code::F6,
+        "f7" => Code::F7,
+        "f8" => Code::F8,
+        "f9" => Code::F9,
+        "f10" => Code::F10,
+        "f11" => Code::F11,
+        "f12" => Code::F12,
 
         // Navigation / editing
-        "space"     => Code::Space,
-        "enter"     => Code::Enter,
-        "tab"       => Code::Tab,
+        "space" => Code::Space,
+        "enter" => Code::Enter,
+        "tab" => Code::Tab,
         "backspace" => Code::Backspace,
         "escape" | "esc" => Code::Escape,
         "delete" | "del" => Code::Delete,
-        "insert"    => Code::Insert,
-        "home"      => Code::Home,
-        "end"       => Code::End,
-        "pageup"    => Code::PageUp,
-        "pagedown"  => Code::PageDown,
-        "up"        => Code::ArrowUp,
-        "down"      => Code::ArrowDown,
-        "left"      => Code::ArrowLeft,
-        "right"     => Code::ArrowRight,
+        "insert" => Code::Insert,
+        "home" => Code::Home,
+        "end" => Code::End,
+        "pageup" => Code::PageUp,
+        "pagedown" => Code::PageDown,
+        "up" => Code::ArrowUp,
+        "down" => Code::ArrowDown,
+        "left" => Code::ArrowLeft,
+        "right" => Code::ArrowRight,
 
         other => bail!("unknown key {other:?}"),
     };
@@ -235,11 +272,10 @@ pub fn register_gnome_shortcuts() -> Result<()> {
     // are executed without sourcing ~/.profile or ~/.bashrc, so bare "copydeck"
     // is unresolvable.  Embedding the full path makes the shortcut work for all
     // users regardless of their $PATH configuration.
-    let exe = std::env::current_exe()
-        .unwrap_or_else(|_| std::path::PathBuf::from("copydeck"));
+    let exe = std::env::current_exe().unwrap_or_else(|_| std::path::PathBuf::from("copydeck"));
     let exe_str = exe.to_string_lossy();
 
-    let open_cmd  = format!("{exe_str} open");
+    let open_cmd = format!("{exe_str} open");
     let paste_cmd = format!("{exe_str} open --paste");
 
     let shortcuts = [
@@ -258,8 +294,7 @@ pub fn register_gnome_shortcuts() -> Result<()> {
     ];
 
     let base = "org.gnome.settings-daemon.plugins.media-keys";
-    let custom_path =
-        "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/";
+    let custom_path = "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/";
 
     // Build the list of existing custom keybinding paths and append ours.
     let list_out = Command::new("gsettings")
@@ -267,9 +302,8 @@ pub fn register_gnome_shortcuts() -> Result<()> {
         .output()
         .context("running gsettings")?;
 
-    let mut existing: Vec<String> = parse_gsettings_list(
-        &String::from_utf8_lossy(&list_out.stdout),
-    );
+    let mut existing: Vec<String> =
+        parse_gsettings_list(&String::from_utf8_lossy(&list_out.stdout));
 
     for (id, name, command, binding) in &shortcuts {
         let path = format!("{custom_path}{id}/");
@@ -277,13 +311,16 @@ pub fn register_gnome_shortcuts() -> Result<()> {
 
         Command::new("gsettings")
             .args(["set", &full_key, "name", name])
-            .status().context("gsettings set name")?;
+            .status()
+            .context("gsettings set name")?;
         Command::new("gsettings")
             .args(["set", &full_key, "command", command])
-            .status().context("gsettings set command")?;
+            .status()
+            .context("gsettings set command")?;
         Command::new("gsettings")
             .args(["set", &full_key, "binding", binding])
-            .status().context("gsettings set binding")?;
+            .status()
+            .context("gsettings set binding")?;
 
         if !existing.iter().any(|p| p == &path) {
             existing.push(path);
@@ -317,7 +354,11 @@ fn parse_gsettings_list(s: &str) -> Vec<String> {
     // Strip optional "@as " type-annotation prefix (empty string array).
     let s = s.trim();
     let s = s.strip_prefix("@as ").unwrap_or(s);
-    let s = s.trim().trim_start_matches('[').trim_end_matches(']').trim();
+    let s = s
+        .trim()
+        .trim_start_matches('[')
+        .trim_end_matches(']')
+        .trim();
     if s.is_empty() {
         return vec![];
     }
@@ -390,7 +431,7 @@ mod tests {
     #[test]
     fn parse_gsettings_list_values() {
         let input = "['path/a/', 'path/b/']";
-        let list  = parse_gsettings_list(input);
+        let list = parse_gsettings_list(input);
         assert_eq!(list, vec!["path/a/", "path/b/"]);
     }
 

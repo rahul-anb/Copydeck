@@ -129,7 +129,7 @@ impl Drop for MonitorHandle {
 /// ```
 pub struct ClipboardMonitor {
     display_server: Option<DisplayServer>,
-    poll_interval:  Duration,
+    poll_interval: Duration,
 }
 
 impl ClipboardMonitor {
@@ -169,20 +169,28 @@ impl ClipboardMonitor {
     ) -> (mpsc::Receiver<ClipboardEvent>, MonitorHandle) {
         let (tx, rx) = mpsc::channel();
 
-        let ignore_next    = Arc::new(AtomicBool::new(false));
+        let ignore_next = Arc::new(AtomicBool::new(false));
         let super_c_pressed = Arc::new(AtomicBool::new(false));
-        let stop            = Arc::new(AtomicBool::new(false));
+        let stop = Arc::new(AtomicBool::new(false));
 
-        let thread_ignore  = Arc::clone(&ignore_next);
+        let thread_ignore = Arc::clone(&ignore_next);
         let thread_super_c = Arc::clone(&super_c_pressed);
-        let thread_stop    = Arc::clone(&stop);
-        let ds             = self.display_server;
-        let interval       = self.poll_interval;
+        let thread_stop = Arc::clone(&stop);
+        let ds = self.display_server;
+        let interval = self.poll_interval;
 
         let thread = thread::Builder::new()
             .name("copydeck-monitor".to_owned())
             .spawn(move || {
-                poll_loop(reader, tx, thread_ignore, thread_super_c, thread_stop, ds, interval);
+                poll_loop(
+                    reader,
+                    tx,
+                    thread_ignore,
+                    thread_super_c,
+                    thread_stop,
+                    ds,
+                    interval,
+                );
             })
             .expect("failed to spawn clipboard monitor thread");
 
@@ -229,7 +237,7 @@ impl ClipboardReader for ArboardReader {
     fn read_text(&mut self) -> Option<String> {
         match self.clipboard.get_text() {
             Ok(t) if t.is_empty() => None,
-            Ok(t)  => Some(t),
+            Ok(t) => Some(t),
             Err(e) => {
                 debug!("arboard read_text error: {e}");
                 None
@@ -275,17 +283,20 @@ impl ClipboardReader for MockReader {
 
 /// Background thread body: polls, deduplicates, enriches, and emits events.
 fn poll_loop(
-    mut reader:     Box<dyn ClipboardReader>,
-    sender:         mpsc::Sender<ClipboardEvent>,
-    ignore_next:    Arc<AtomicBool>,
+    mut reader: Box<dyn ClipboardReader>,
+    sender: mpsc::Sender<ClipboardEvent>,
+    ignore_next: Arc<AtomicBool>,
     super_c_pressed: Arc<AtomicBool>,
-    stop:           Arc<AtomicBool>,
+    stop: Arc<AtomicBool>,
     display_server: Option<DisplayServer>,
-    interval:       Duration,
+    interval: Duration,
 ) {
     let mut last_checksum = String::new();
 
-    info!("Clipboard monitor started (poll interval: {}ms)", interval.as_millis());
+    info!(
+        "Clipboard monitor started (poll interval: {}ms)",
+        interval.as_millis()
+    );
 
     loop {
         thread::sleep(interval);
@@ -324,7 +335,14 @@ fn poll_loop(
 
         debug!(mime_type, source = source.as_str(), "New clipboard event");
 
-        if sender.send(ClipboardEvent { content, mime_type, source }).is_err() {
+        if sender
+            .send(ClipboardEvent {
+                content,
+                mime_type,
+                source,
+            })
+            .is_err()
+        {
             // Receiver was dropped — the daemon is shutting down.
             break;
         }
@@ -347,10 +365,7 @@ const MIME_PRIORITY: &[&str] = &[
 /// `wl-paste` (Wayland) to list the available MIME types and, if HTML or
 /// URI-list is offered, reads that content.  Falls back to `text/plain`
 /// gracefully when the tools are unavailable.
-fn enrich_mime(
-    plain_text:    &str,
-    display_server: Option<DisplayServer>,
-) -> (String, String) {
+fn enrich_mime(plain_text: &str, display_server: Option<DisplayServer>) -> (String, String) {
     let Some(ds) = display_server else {
         return (plain_text.to_owned(), "text/plain".to_owned());
     };
@@ -380,7 +395,10 @@ fn enrich_mime(
 pub(crate) fn pick_best_mime(targets: &[String]) -> String {
     for &priority in MIME_PRIORITY {
         // Use `contains` to match subtypes like `text/plain;charset=utf-8`.
-        if targets.iter().any(|t| t.contains(priority) || priority.contains(t.as_str())) {
+        if targets
+            .iter()
+            .any(|t| t.contains(priority) || priority.contains(t.as_str()))
+        {
             return priority.to_owned();
         }
     }
@@ -390,10 +408,9 @@ pub(crate) fn pick_best_mime(targets: &[String]) -> String {
 /// List MIME types available on the clipboard via a platform subprocess.
 fn list_mime_targets(ds: DisplayServer) -> Vec<String> {
     match ds {
-        DisplayServer::X11 => run_lines(
-            "xclip",
-            &["-o", "-selection", "clipboard", "-t", "TARGETS"],
-        ),
+        DisplayServer::X11 => {
+            run_lines("xclip", &["-o", "-selection", "clipboard", "-t", "TARGETS"])
+        }
         DisplayServer::Wayland => run_lines("wl-paste", &["--list-types"]),
     }
 }
@@ -401,18 +418,16 @@ fn list_mime_targets(ds: DisplayServer) -> Vec<String> {
 /// Read clipboard content for a specific MIME type via a platform subprocess.
 fn read_mime_content(mime: &str, ds: DisplayServer) -> Option<String> {
     let raw = match ds {
-        DisplayServer::X11 => run_output(
-            "xclip",
-            &["-o", "-selection", "clipboard", "-t", mime],
-        ),
+        DisplayServer::X11 => run_output("xclip", &["-o", "-selection", "clipboard", "-t", mime]),
         DisplayServer::Wayland => run_output("wl-paste", &["--type", mime]),
     }?;
 
     // Validate that the output is valid UTF-8 (e.g. HTML may contain latin-1).
     // Fall back to lossy conversion to avoid dropping events on encoding issues.
-    Some(String::from_utf8(raw).unwrap_or_else(|e| {
-        String::from_utf8_lossy(e.as_bytes()).into_owned()
-    }))
+    Some(
+        String::from_utf8(raw)
+            .unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned()),
+    )
 }
 
 // ── Subprocess helpers ────────────────────────────────────────────────────────
@@ -479,13 +494,14 @@ mod tests {
     /// Uses a **1 ms** poll interval so tests run fast.  Only suitable for
     /// tests that do **not** need to set flags between polls (race-free use:
     /// flags set before `start_with_reader`, or tested via atomics directly).
-    fn make_mock_monitor(items: Vec<Option<&str>>) -> (mpsc::Receiver<ClipboardEvent>, MonitorHandle) {
-        let reader = MockReader(
-            items.into_iter()
-                .map(|o| o.map(str::to_owned))
-                .collect(),
-        );
-        let config = MonitorConfig { poll_interval_ms: 1, ..MonitorConfig::default() };
+    fn make_mock_monitor(
+        items: Vec<Option<&str>>,
+    ) -> (mpsc::Receiver<ClipboardEvent>, MonitorHandle) {
+        let reader = MockReader(items.into_iter().map(|o| o.map(str::to_owned)).collect());
+        let config = MonitorConfig {
+            poll_interval_ms: 1,
+            ..MonitorConfig::default()
+        };
         ClipboardMonitor::new(None, &config).start_with_reader(Box::new(reader))
     }
 
@@ -495,12 +511,18 @@ mod tests {
     /// at will.  Uses a **30 ms** poll interval — long enough that calling
     /// `signal_*` immediately after `make_shared_monitor` is guaranteed to
     /// land before the first read.
-    fn make_shared_monitor()
-    -> (Arc<Mutex<Option<String>>>, mpsc::Receiver<ClipboardEvent>, MonitorHandle) {
+    fn make_shared_monitor() -> (
+        Arc<Mutex<Option<String>>>,
+        mpsc::Receiver<ClipboardEvent>,
+        MonitorHandle,
+    ) {
         let clipboard = Arc::new(Mutex::new(None::<String>));
-        let reader    = SharedClipboard(Arc::clone(&clipboard));
-        let config    = MonitorConfig { poll_interval_ms: 30, ..MonitorConfig::default() };
-        let (rx, h)   = ClipboardMonitor::new(None, &config).start_with_reader(Box::new(reader));
+        let reader = SharedClipboard(Arc::clone(&clipboard));
+        let config = MonitorConfig {
+            poll_interval_ms: 30,
+            ..MonitorConfig::default()
+        };
+        let (rx, h) = ClipboardMonitor::new(None, &config).start_with_reader(Box::new(reader));
         (clipboard, rx, h)
     }
 
@@ -510,7 +532,7 @@ mod tests {
         let mut events = Vec::new();
         while std::time::Instant::now() < deadline {
             match rx.try_recv() {
-                Ok(e)  => events.push(e),
+                Ok(e) => events.push(e),
                 Err(_) => std::thread::sleep(Duration::from_millis(2)),
             }
         }
@@ -545,7 +567,10 @@ mod tests {
 
     #[test]
     fn falls_back_to_plain_text_when_nothing_recognised() {
-        let targets = vec!["image/png".to_owned(), "application/octet-stream".to_owned()];
+        let targets = vec![
+            "image/png".to_owned(),
+            "application/octet-stream".to_owned(),
+        ];
         assert_eq!(pick_best_mime(&targets), "text/plain");
     }
 
@@ -616,17 +641,15 @@ mod tests {
             Some("first"), // consecutive duplicate — deduped
             Some("second"),
         ]);
-        let events  = collect_events(&rx, 100);
+        let events = collect_events(&rx, 100);
         let content: Vec<&str> = events.iter().map(|e| e.content.as_str()).collect();
-        assert!(content.contains(&"first"),  "first should be emitted");
+        assert!(content.contains(&"first"), "first should be emitted");
         assert!(content.contains(&"second"), "second should be emitted");
     }
 
     #[test]
     fn deduplicates_consecutive_identical_content() {
-        let (rx, _h) = make_mock_monitor(vec![
-            Some("dup"), Some("dup"), Some("dup"),
-        ]);
+        let (rx, _h) = make_mock_monitor(vec![Some("dup"), Some("dup"), Some("dup")]);
         let events = collect_events(&rx, 80);
         assert_eq!(events.len(), 1, "duplicate content must emit only once");
     }
@@ -642,7 +665,9 @@ mod tests {
     fn ctrl_c_is_the_default_source() {
         let (rx, _h) = make_mock_monitor(vec![Some("ctrl copy")]);
         let events = collect_events(&rx, 80);
-        let ev = events.iter().find(|e| e.content == "ctrl copy")
+        let ev = events
+            .iter()
+            .find(|e| e.content == "ctrl copy")
             .expect("event must be emitted");
         assert_eq!(ev.source, CopySource::CtrlC);
     }
@@ -652,7 +677,10 @@ mod tests {
         let (rx, handle) = make_mock_monitor(vec![]);
         drop(handle);
         std::thread::sleep(Duration::from_millis(20));
-        assert!(rx.recv().is_err(), "channel must disconnect after handle drop");
+        assert!(
+            rx.recv().is_err(),
+            "channel must disconnect after handle drop"
+        );
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -663,23 +691,38 @@ mod tests {
     fn signal_ignore_next_sets_atomic_flag() {
         // Use a very long poll interval so the thread never reads during the test.
         let reader = MockReader(VecDeque::new());
-        let config = MonitorConfig { poll_interval_ms: 60_000, ..MonitorConfig::default() };
+        let config = MonitorConfig {
+            poll_interval_ms: 60_000,
+            ..MonitorConfig::default()
+        };
         let (_, handle) = ClipboardMonitor::new(None, &config).start_with_reader(Box::new(reader));
 
         assert!(!handle.ignore_next.load(Ordering::SeqCst), "starts false");
         handle.signal_ignore_next();
-        assert!(handle.ignore_next.load(Ordering::SeqCst), "set after signal");
+        assert!(
+            handle.ignore_next.load(Ordering::SeqCst),
+            "set after signal"
+        );
     }
 
     #[test]
     fn signal_super_c_sets_atomic_flag() {
         let reader = MockReader(VecDeque::new());
-        let config = MonitorConfig { poll_interval_ms: 60_000, ..MonitorConfig::default() };
+        let config = MonitorConfig {
+            poll_interval_ms: 60_000,
+            ..MonitorConfig::default()
+        };
         let (_, handle) = ClipboardMonitor::new(None, &config).start_with_reader(Box::new(reader));
 
-        assert!(!handle.super_c_pressed.load(Ordering::SeqCst), "starts false");
+        assert!(
+            !handle.super_c_pressed.load(Ordering::SeqCst),
+            "starts false"
+        );
         handle.signal_super_c();
-        assert!(handle.super_c_pressed.load(Ordering::SeqCst), "set after signal");
+        assert!(
+            handle.super_c_pressed.load(Ordering::SeqCst),
+            "set after signal"
+        );
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -700,7 +743,9 @@ mod tests {
         *clipboard.lock().unwrap() = Some("via super+c".to_owned());
 
         let events = collect_events(&rx, 200);
-        let ev = events.iter().find(|e| e.content == "via super+c")
+        let ev = events
+            .iter()
+            .find(|e| e.content == "via super+c")
             .expect("event for 'via super+c' must be emitted");
         assert_eq!(ev.source, CopySource::SuperC, "source must be SuperC");
     }
@@ -741,15 +786,25 @@ mod tests {
         *clipboard.lock().unwrap() = Some("first".to_owned());
 
         // Wait for "first" event.
-        let ev1 = rx.recv_timeout(Duration::from_millis(200))
+        let ev1 = rx
+            .recv_timeout(Duration::from_millis(200))
             .expect("first event must arrive");
-        assert_eq!(ev1.source, CopySource::SuperC, "first event should be SuperC");
+        assert_eq!(
+            ev1.source,
+            CopySource::SuperC,
+            "first event should be SuperC"
+        );
 
         // Now change clipboard without signalling super_c again.
         *clipboard.lock().unwrap() = Some("second".to_owned());
 
-        let ev2 = rx.recv_timeout(Duration::from_millis(200))
+        let ev2 = rx
+            .recv_timeout(Duration::from_millis(200))
             .expect("second event must arrive");
-        assert_eq!(ev2.source, CopySource::CtrlC, "second event should be CtrlC");
+        assert_eq!(
+            ev2.source,
+            CopySource::CtrlC,
+            "second event should be CtrlC"
+        );
     }
 }

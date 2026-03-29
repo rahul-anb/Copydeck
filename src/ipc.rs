@@ -91,8 +91,8 @@ impl IpcClient {
             )
         })?;
 
-        let msg = serde_json::to_string(&IpcMessage { action })
-            .context("serialising IPC action")?;
+        let msg =
+            serde_json::to_string(&IpcMessage { action }).context("serialising IPC action")?;
         writeln!(stream, "{msg}").context("sending IPC message to daemon")?;
         debug!("IPC action sent");
         Ok(())
@@ -117,9 +117,8 @@ impl IpcServer {
     /// Creates the parent directory if it does not exist.
     pub fn bind(socket_path: &Path) -> Result<Self> {
         if let Some(parent) = socket_path.parent() {
-            std::fs::create_dir_all(parent).with_context(|| {
-                format!("creating socket directory {}", parent.display())
-            })?;
+            std::fs::create_dir_all(parent)
+                .with_context(|| format!("creating socket directory {}", parent.display()))?;
         }
         // Remove a stale socket left by a previously crashed daemon.
         let _ = std::fs::remove_file(socket_path);
@@ -138,10 +137,7 @@ impl IpcServer {
     /// Returns `Ok(None)` when the client sent an empty or unrecognised
     /// message (the caller should log and loop rather than abort).
     pub fn accept_one(&self) -> Result<Option<IpcAction>> {
-        let (stream, _addr) = self
-            .listener
-            .accept()
-            .context("accepting IPC connection")?;
+        let (stream, _addr) = self.listener.accept().context("accepting IPC connection")?;
 
         let mut reader = BufReader::new(stream);
         let mut line = String::new();
@@ -188,11 +184,11 @@ mod tests {
     }
 
     fn roundtrip(action: IpcAction) {
-        let path   = unique_socket_path();
+        let path = unique_socket_path();
         let server = IpcServer::bind(&path).expect("bind failed");
 
         let client_path = path.clone();
-        let expected    = action.clone();
+        let expected = action.clone();
         let t = thread::spawn(move || {
             IpcClient::new(client_path)
                 .send(expected)
@@ -205,16 +201,24 @@ mod tests {
     }
 
     #[test]
-    fn send_open()       { roundtrip(IpcAction::Open); }
+    fn send_open() {
+        roundtrip(IpcAction::Open);
+    }
 
     #[test]
-    fn send_open_paste() { roundtrip(IpcAction::OpenPaste); }
+    fn send_open_paste() {
+        roundtrip(IpcAction::OpenPaste);
+    }
 
     #[test]
-    fn send_pause()      { roundtrip(IpcAction::Pause); }
+    fn send_pause() {
+        roundtrip(IpcAction::Pause);
+    }
 
     #[test]
-    fn send_resume()     { roundtrip(IpcAction::Resume); }
+    fn send_resume() {
+        roundtrip(IpcAction::Resume);
+    }
 
     #[test]
     fn socket_file_removed_on_server_drop() {
@@ -236,7 +240,7 @@ mod tests {
 
     #[test]
     fn server_ignores_malformed_message() {
-        let path   = unique_socket_path();
+        let path = unique_socket_path();
         let server = IpcServer::bind(&path).expect("bind failed");
 
         let client_path = path.clone();
@@ -252,13 +256,16 @@ mod tests {
     #[test]
     fn ipc_action_serialises_as_snake_case() {
         let cases = [
-            (IpcAction::Open,      r#"{"action":"open"}"#),
+            (IpcAction::Open, r#"{"action":"open"}"#),
             (IpcAction::OpenPaste, r#"{"action":"open_paste"}"#),
-            (IpcAction::Pause,     r#"{"action":"pause"}"#),
-            (IpcAction::Resume,    r#"{"action":"resume"}"#),
+            (IpcAction::Pause, r#"{"action":"pause"}"#),
+            (IpcAction::Resume, r#"{"action":"resume"}"#),
         ];
         for (action, expected) in &cases {
-            let json = serde_json::to_string(&IpcMessage { action: action.clone() }).unwrap();
+            let json = serde_json::to_string(&IpcMessage {
+                action: action.clone(),
+            })
+            .unwrap();
             assert_eq!(&json, expected, "action {:?}", action);
         }
     }
@@ -266,10 +273,10 @@ mod tests {
     #[test]
     fn ipc_action_deserialises_from_snake_case() {
         let cases = [
-            (r#"{"action":"open"}"#,       IpcAction::Open),
+            (r#"{"action":"open"}"#, IpcAction::Open),
             (r#"{"action":"open_paste"}"#, IpcAction::OpenPaste),
-            (r#"{"action":"pause"}"#,      IpcAction::Pause),
-            (r#"{"action":"resume"}"#,     IpcAction::Resume),
+            (r#"{"action":"pause"}"#, IpcAction::Pause),
+            (r#"{"action":"resume"}"#, IpcAction::Resume),
         ];
         for (json, expected) in &cases {
             let msg: IpcMessage = serde_json::from_str(json).unwrap();

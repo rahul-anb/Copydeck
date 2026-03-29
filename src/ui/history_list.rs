@@ -4,12 +4,9 @@
 //! `Vec<HistoryEntry>`.  Each row shows a relative timestamp and a content
 //! preview (up to `max_preview_lines` lines).
 
-use gtk4::prelude::*;
-use gtk4::{
-    Box as GtkBox, Label, ListBox, ListBoxRow, Orientation, ScrolledWindow,
-    SelectionMode,
-};
 use gtk4::pango::EllipsizeMode;
+use gtk4::prelude::*;
+use gtk4::{Box as GtkBox, Label, ListBox, ListBoxRow, Orientation, ScrolledWindow, SelectionMode};
 
 use crate::storage::HistoryEntry;
 
@@ -19,8 +16,8 @@ use crate::storage::HistoryEntry;
 pub struct HistoryList {
     pub scrolled: ScrolledWindow,
     pub list_box: ListBox,
-    entries:      Vec<HistoryEntry>,
-    max_preview:  usize,
+    entries: Vec<HistoryEntry>,
+    max_preview: usize,
 }
 
 impl HistoryList {
@@ -75,10 +72,10 @@ impl HistoryList {
             // Widget tree: ListBoxRow → GtkBox (hbox) → {ts_label, content_vbox}
             //              content_vbox → {content_label, overflow_label?}
             let content = row
-                .first_child()                          // GtkBox (hbox)
-                .and_then(|b| b.first_child())          // timestamp label
-                .and_then(|l| l.next_sibling())         // content_vbox (GtkBox)
-                .and_then(|v| v.first_child())          // content label (Label)
+                .first_child() // GtkBox (hbox)
+                .and_then(|b| b.first_child()) // timestamp label
+                .and_then(|l| l.next_sibling()) // content_vbox (GtkBox)
+                .and_then(|v| v.first_child()) // content label (Label)
                 .and_downcast::<Label>();
 
             content
@@ -105,12 +102,12 @@ impl HistoryList {
 
     /// Move selection up by one row, wrapping to the last row.
     pub fn select_prev(&self) {
-        let idx = self
-            .list_box
-            .selected_row()
-            .map(|r| r.index())
-            .unwrap_or(0);
-        let prev = if idx > 0 { idx - 1 } else { self.entry_count() as i32 - 1 };
+        let idx = self.list_box.selected_row().map(|r| r.index()).unwrap_or(0);
+        let prev = if idx > 0 {
+            idx - 1
+        } else {
+            self.entry_count() as i32 - 1
+        };
         if let Some(row) = self.list_box.row_at_index(prev) {
             self.list_box.select_row(Some(&row));
             row.grab_focus();
@@ -143,16 +140,20 @@ impl HistoryList {
     fn ensure_row_visible(&self, row: ListBoxRow) {
         let scrolled = self.scrolled.clone();
         gtk4::glib::idle_add_local(move || {
-            let adj  = scrolled.vadjustment();
-            let cur  = adj.value();
+            let adj = scrolled.vadjustment();
+            let cur = adj.value();
             let page = adj.page_size();
-            if page <= 0.0 { return gtk4::glib::ControlFlow::Break; }
+            if page <= 0.0 {
+                return gtk4::glib::ControlFlow::Break;
+            }
 
             #[allow(deprecated)]
             let alloc = row.allocation();
-            let y     = alloc.y() as f64;
+            let y = alloc.y() as f64;
             let row_h = alloc.height() as f64;
-            if row_h <= 0.0 { return gtk4::glib::ControlFlow::Break; }
+            if row_h <= 0.0 {
+                return gtk4::glib::ControlFlow::Break;
+            }
 
             if y < cur {
                 adj.set_value(y.max(adj.lower()));
@@ -212,7 +213,7 @@ fn build_preview(content: &str, max_lines: usize) -> (String, Option<String>) {
         return (content.to_owned(), None);
     }
     let preview = lines[..max_lines].join("\n");
-    let extra   = lines.len() - max_lines;
+    let extra = lines.len() - max_lines;
     (preview, Some(format!("↵ (+{extra} lines)")))
 }
 
@@ -230,18 +231,18 @@ pub fn relative_time(unix_ts: i64) -> String {
     let delta = now.saturating_sub(unix_ts);
 
     match delta {
-        0..=59          => "just now".to_owned(),
-        60..=3599       => format!("{}m ago", delta / 60),
-        3600..=86399    => format!("{}h ago", delta / 3600),
-        86400..=172799  => "yesterday".to_owned(),
-        _               => {
+        0..=59 => "just now".to_owned(),
+        60..=3599 => format!("{}m ago", delta / 60),
+        3600..=86399 => format!("{}h ago", delta / 3600),
+        86400..=172799 => "yesterday".to_owned(),
+        _ => {
             // Date only for older entries.
             use std::time::{Duration, UNIX_EPOCH};
             let t = UNIX_EPOCH + Duration::from_secs(unix_ts as u64);
             // Minimal formatting without chrono — "YYYY-MM-DD".
             let secs = unix_ts as u64;
-            let days  = secs / 86400;
-            let y     = days_to_ymd(days);
+            let days = secs / 86400;
+            let y = days_to_ymd(days);
             y
         }
     }
@@ -250,16 +251,16 @@ pub fn relative_time(unix_ts: i64) -> String {
 /// Convert days-since-epoch to a "YYYY-MM-DD" string (no external deps).
 fn days_to_ymd(days: u64) -> String {
     // Gregorian calendar computation.
-    let z  = days + 719468;
+    let z = days + 719468;
     let era = z / 146097;
     let doe = z % 146097;
-    let yoe = (doe - doe/1460 + doe/36524 - doe/146096) / 365;
-    let y   = yoe + era * 400;
-    let doy = doe - (365*yoe + yoe/4 - yoe/100);
-    let mp  = (5*doy + 2) / 153;
-    let d   = doy - (153*mp + 2)/5 + 1;
-    let m   = if mp < 10 { mp + 3 } else { mp - 9 };
-    let y   = if m <= 2 { y + 1 } else { y };
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = if m <= 2 { y + 1 } else { y };
     format!("{y:04}-{m:02}-{d:02}")
 }
 

@@ -41,17 +41,17 @@ pub enum CopySource {
 impl CopySource {
     pub(crate) fn as_str(self) -> &'static str {
         match self {
-            Self::CtrlC  => "ctrl_c",
+            Self::CtrlC => "ctrl_c",
             Self::SuperC => "super_c",
-            Self::App    => "app",
+            Self::App => "app",
         }
     }
 
     fn from_str(s: &str) -> Self {
         match s {
             "super_c" => Self::SuperC,
-            "app"     => Self::App,
-            _         => Self::CtrlC,
+            "app" => Self::App,
+            _ => Self::CtrlC,
         }
     }
 }
@@ -112,9 +112,8 @@ impl StorageManager {
     /// Returns an error if the file cannot be opened or if a migration fails.
     pub fn open(path: &Path) -> Result<Self> {
         if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent).with_context(|| {
-                format!("creating database directory {}", parent.display())
-            })?;
+            std::fs::create_dir_all(parent)
+                .with_context(|| format!("creating database directory {}", parent.display()))?;
         }
 
         let conn = Connection::open(path)
@@ -140,8 +139,7 @@ impl StorageManager {
     /// assert!(db.get_history(10, 0).unwrap().is_empty());
     /// ```
     pub fn open_in_memory() -> Result<Self> {
-        let conn = Connection::open_in_memory()
-            .context("opening in-memory database")?;
+        let conn = Connection::open_in_memory().context("opening in-memory database")?;
         let mut mgr = Self { conn };
         mgr.configure_pragmas()?;
         mgr.migrate()?;
@@ -161,10 +159,10 @@ impl StorageManager {
     /// Returns `Ok(Some(id))` on insert, `Ok(None)` when deduplicated.
     pub fn add_history(
         &self,
-        content:   &str,
+        content: &str,
         mime_type: &str,
-        source:    CopySource,
-        limit:     usize,
+        source: CopySource,
+        limit: usize,
     ) -> Result<Option<i64>> {
         let checksum = sha256_hex(content);
 
@@ -221,12 +219,12 @@ impl StorageManager {
         let mapped = stmt.query_map(params![limit as i64, offset as i64], |row| {
             let source_str: String = row.get(5)?;
             Ok(HistoryEntry {
-                id:        row.get(0)?,
-                content:   row.get(1)?,
+                id: row.get(0)?,
+                content: row.get(1)?,
                 mime_type: row.get(2)?,
                 copied_at: row.get(3)?,
-                checksum:  row.get(4)?,
-                source:    CopySource::from_str(&source_str),
+                checksum: row.get(4)?,
+                source: CopySource::from_str(&source_str),
             })
         })?;
         let entries = mapped
@@ -249,9 +247,7 @@ impl StorageManager {
     ///
     /// Pinned items are not affected.
     pub fn clear_history(&self) -> Result<usize> {
-        Ok(self
-            .conn
-            .execute("DELETE FROM clipboard_history", [])?)
+        Ok(self.conn.execute("DELETE FROM clipboard_history", [])?)
     }
 
     // ── Pinned items ──────────────────────────────────────────────────────────
@@ -260,12 +256,7 @@ impl StorageManager {
     ///
     /// The new item is appended at the end of the pinned list
     /// (highest `position` value + 1).
-    pub fn add_pin(
-        &self,
-        content:   &str,
-        mime_type: &str,
-        label:     Option<&str>,
-    ) -> Result<i64> {
+    pub fn add_pin(&self, content: &str, mime_type: &str, label: Option<&str>) -> Result<i64> {
         let now = unix_now();
         let next_pos: i64 = self
             .conn
@@ -331,12 +322,12 @@ impl StorageManager {
 
         let mapped = stmt.query_map([], |row| {
             Ok(PinnedItem {
-                id:        row.get(0)?,
-                content:   row.get(1)?,
+                id: row.get(0)?,
+                content: row.get(1)?,
                 mime_type: row.get(2)?,
-                label:     row.get(3)?,
+                label: row.get(3)?,
                 pinned_at: row.get(4)?,
-                position:  row.get(5)?,
+                position: row.get(5)?,
             })
         })?;
         let items = mapped
@@ -348,15 +339,16 @@ impl StorageManager {
     // ── Private helpers ───────────────────────────────────────────────────────
 
     fn configure_pragmas(&self) -> Result<()> {
-        self.conn.execute_batch(
-            // Write-ahead logging: reads don't block writes.
-            "PRAGMA journal_mode = WAL;
+        self.conn
+            .execute_batch(
+                // Write-ahead logging: reads don't block writes.
+                "PRAGMA journal_mode = WAL;
              -- Enforce referential integrity.
              PRAGMA foreign_keys = ON;
              -- Reasonable cache size (4 MB).
              PRAGMA cache_size = -4000;",
-        )
-        .context("configuring SQLite pragmas")
+            )
+            .context("configuring SQLite pragmas")
     }
 
     fn migrate(&mut self) -> Result<()> {

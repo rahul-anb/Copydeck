@@ -10,7 +10,9 @@
 //! Run with:
 //!   cargo test --test config_tests
 
-use copydeck::config::{Config, GeneralConfig, HotkeyConfig, MonitorConfig, PasteConfig, StorageConfig, UiConfig};
+use copydeck::config::{
+    Config, GeneralConfig, HotkeyConfig, MonitorConfig, PasteConfig, StorageConfig, UiConfig,
+};
 use std::path::PathBuf;
 
 // ── Helper ────────────────────────────────────────────────────────────────────
@@ -22,7 +24,10 @@ fn write_temp_config(contents: &str) -> PathBuf {
     static COUNTER: AtomicU64 = AtomicU64::new(0);
     let n = COUNTER.fetch_add(1, Ordering::SeqCst);
     let path = PathBuf::from(format!("/tmp/copydeck_config_test_{n}.toml"));
-    std::fs::File::create(&path).unwrap().write_all(contents.as_bytes()).unwrap();
+    std::fs::File::create(&path)
+        .unwrap()
+        .write_all(contents.as_bytes())
+        .unwrap();
     path
 }
 
@@ -109,9 +114,15 @@ fn missing_config_file_returns_defaults() {
 fn partial_toml_fills_missing_keys_with_defaults() {
     let path = write_temp_config("[ui]\ntheme = \"dark\"\n");
     let cfg = Config::load_from(&path).unwrap();
-    assert_eq!(cfg.ui.theme, "dark",      "parsed key must match");
-    assert_eq!(cfg.general.history_limit, 200, "missing key must use default");
-    assert_eq!(cfg.hotkeys.open_and_paste, "super+shift+v", "missing key must use default");
+    assert_eq!(cfg.ui.theme, "dark", "parsed key must match");
+    assert_eq!(
+        cfg.general.history_limit, 200,
+        "missing key must use default"
+    );
+    assert_eq!(
+        cfg.hotkeys.open_and_paste, "super+shift+v",
+        "missing key must use default"
+    );
 }
 
 #[test]
@@ -136,19 +147,19 @@ fn partial_monitor_section() {
 #[test]
 fn full_round_trip_through_toml() {
     let mut cfg = Config::default();
-    cfg.general.history_limit        = 123;
-    cfg.hotkeys.open_history         = "ctrl+alt+c".to_owned();
-    cfg.ui.theme                     = "dark".to_owned();
-    cfg.monitor.poll_interval_ms     = 100;
+    cfg.general.history_limit = 123;
+    cfg.hotkeys.open_history = "ctrl+alt+c".to_owned();
+    cfg.ui.theme = "dark".to_owned();
+    cfg.monitor.poll_interval_ms = 100;
     cfg.paste.focus_restore_delay_ms = 50;
 
     let toml = toml::to_string_pretty(&cfg).unwrap();
     let back: Config = toml::from_str(&toml).unwrap();
 
-    assert_eq!(back.general.history_limit,        123);
-    assert_eq!(back.hotkeys.open_history,         "ctrl+alt+c");
-    assert_eq!(back.ui.theme,                     "dark");
-    assert_eq!(back.monitor.poll_interval_ms,     100);
+    assert_eq!(back.general.history_limit, 123);
+    assert_eq!(back.hotkeys.open_history, "ctrl+alt+c");
+    assert_eq!(back.ui.theme, "dark");
+    assert_eq!(back.monitor.poll_interval_ms, 100);
     assert_eq!(back.paste.focus_restore_delay_ms, 50);
 }
 
@@ -189,7 +200,10 @@ fn resolved_db_path_expands_tilde() {
 fn resolved_db_path_with_explicit_absolute_path() {
     let path = write_temp_config("[storage]\ndb_path = \"/tmp/test_copydeck.db\"\n");
     let cfg = Config::load_from(&path).unwrap();
-    assert_eq!(cfg.resolved_db_path(), PathBuf::from("/tmp/test_copydeck.db"));
+    assert_eq!(
+        cfg.resolved_db_path(),
+        PathBuf::from("/tmp/test_copydeck.db")
+    );
 }
 
 // ── Fixture file round-trip through storage ───────────────────────────────────
@@ -204,10 +218,18 @@ fn fixture_round_trip(file: &str) {
     .unwrap_or_else(|_| panic!("fixture {file} not found"));
 
     let db = copydeck::storage::StorageManager::open_in_memory().unwrap();
-    db.add_history(&content, "text/plain", copydeck::storage::CopySource::CtrlC, 200)
-        .unwrap();
+    db.add_history(
+        &content,
+        "text/plain",
+        copydeck::storage::CopySource::CtrlC,
+        200,
+    )
+    .unwrap();
     let rows = db.get_history(1, 0).unwrap();
-    assert_eq!(rows[0].content, content, "fixture {file} must round-trip unchanged");
+    assert_eq!(
+        rows[0].content, content,
+        "fixture {file} must round-trip unchanged"
+    );
 }
 
 #[test]

@@ -18,12 +18,12 @@
 
 use std::sync::{Arc, Mutex};
 
+use gtk4::glib::{self, clone};
 use gtk4::prelude::*;
 use gtk4::{
-    Application, ApplicationWindow, Box as GtkBox, CssProvider, EventControllerKey,
-    Label, Orientation, ScrolledWindow, SearchEntry, Separator, StyleContext,
+    Application, ApplicationWindow, Box as GtkBox, CssProvider, EventControllerKey, Label,
+    Orientation, ScrolledWindow, SearchEntry, Separator, StyleContext,
 };
-use gtk4::glib::{self, clone};
 
 use crate::config::UiConfig;
 use crate::paste::{capture_active_window, PasteEngine};
@@ -38,27 +38,27 @@ use super::pinned_list::PinnedList;
 /// Handle to the popup window.  Clone-safe (internally `Rc`-based by GTK).
 #[derive(Clone)]
 pub struct CopyDeckPopup {
-    window:       ApplicationWindow,
-    search:       SearchEntry,
-    pinned:       Arc<Mutex<PinnedList>>,
-    history:      Arc<Mutex<HistoryList>>,
-    db:           Arc<Mutex<StorageManager>>,
+    window: ApplicationWindow,
+    search: SearchEntry,
+    pinned: Arc<Mutex<PinnedList>>,
+    history: Arc<Mutex<HistoryList>>,
+    db: Arc<Mutex<StorageManager>>,
     paste_engine: Arc<PasteEngine>,
-    ds:           Option<DisplayServer>,
-    ui_config:    UiConfig,
+    ds: Option<DisplayServer>,
+    ui_config: UiConfig,
     /// Window ID of the app that had focus before the popup opened.
-    prev_window:  Arc<Mutex<Option<u64>>>,
-    paste_mode:   Arc<Mutex<bool>>,
+    prev_window: Arc<Mutex<Option<u64>>>,
+    paste_mode: Arc<Mutex<bool>>,
 }
 
 impl CopyDeckPopup {
     /// Build the window.  Call [`show`](Self::show) to make it visible.
     pub fn new(
-        app:          &Application,
-        db:           Arc<Mutex<StorageManager>>,
+        app: &Application,
+        db: Arc<Mutex<StorageManager>>,
         paste_engine: Arc<PasteEngine>,
-        ds:           Option<DisplayServer>,
-        ui_config:    &UiConfig,
+        ds: Option<DisplayServer>,
+        ui_config: &UiConfig,
     ) -> Self {
         // Load CSS.
         let css = CssProvider::new();
@@ -100,11 +100,12 @@ impl CopyDeckPopup {
         pinned_header.set_halign(gtk4::Align::Start);
         root.append(&pinned_header);
 
-        let pinned  = Arc::new(Mutex::new(PinnedList::new(ui_config.max_preview_lines)));
+        let pinned = Arc::new(Mutex::new(PinnedList::new(ui_config.max_preview_lines)));
         {
             let p = pinned.lock().unwrap();
             // Pinned section grows with content but never exceeds 50 % of the window.
-            p.scrolled.set_max_content_height((ui_config.popup_height as i32) / 2);
+            p.scrolled
+                .set_max_content_height((ui_config.popup_height as i32) / 2);
             root.append(&p.scrolled);
         }
 
@@ -142,7 +143,7 @@ impl CopyDeckPopup {
             ds,
             ui_config: ui_config.clone(),
             prev_window: Arc::new(Mutex::new(None)),
-            paste_mode:  Arc::new(Mutex::new(false)),
+            paste_mode: Arc::new(Mutex::new(false)),
         };
 
         popup.connect_signals();
@@ -157,8 +158,7 @@ impl CopyDeckPopup {
     /// pasted into the previous window (Super+V behaviour).
     pub fn show(&self, paste_on_select: bool) {
         // Capture the currently focused window before taking focus away.
-        *self.prev_window.lock().unwrap() =
-            capture_active_window(self.ds);
+        *self.prev_window.lock().unwrap() = capture_active_window(self.ds);
         *self.paste_mode.lock().unwrap() = paste_on_select;
 
         // Hide first so the compositor unmaps the window.  When we call
@@ -197,11 +197,15 @@ impl CopyDeckPopup {
         let (pins, history) = {
             let db = self.db.lock().unwrap();
             eprintln!("[copydeck] reload_data: db locked, fetching");
-            let pins    = db.get_pins().unwrap_or_default();
+            let pins = db.get_pins().unwrap_or_default();
             let history = db
                 .get_history(self.ui_config.max_preview_lines * 50, 0)
                 .unwrap_or_default();
-            eprintln!("[copydeck] reload_data: fetched {} pins, {} history", pins.len(), history.len());
+            eprintln!(
+                "[copydeck] reload_data: fetched {} pins, {} history",
+                pins.len(),
+                history.len()
+            );
             (pins, history)
         };
         eprintln!("[copydeck] reload_data: db released, populating pinned");
@@ -215,7 +219,7 @@ impl CopyDeckPopup {
 
     fn connect_signals(&self) {
         // Live search
-        let pinned_ref  = Arc::clone(&self.pinned);
+        let pinned_ref = Arc::clone(&self.pinned);
         let history_ref = Arc::clone(&self.history);
         self.search.connect_search_changed(move |entry| {
             let q = entry.text().to_string();
@@ -226,9 +230,7 @@ impl CopyDeckPopup {
         // Keyboard navigation
         let popup = self.clone();
         let key_ctrl = EventControllerKey::new();
-        key_ctrl.connect_key_pressed(move |_, key, _, mods| {
-            popup.handle_key(key, mods)
-        });
+        key_ctrl.connect_key_pressed(move |_, key, _, mods| popup.handle_key(key, mods));
         self.window.add_controller(key_ctrl);
 
         // Double-click on history row = paste (close first so focus returns to previous app)
@@ -246,11 +248,7 @@ impl CopyDeckPopup {
         });
     }
 
-    fn handle_key(
-        &self,
-        key:  gtk4::gdk::Key,
-        mods: gtk4::gdk::ModifierType,
-    ) -> glib::Propagation {
+    fn handle_key(&self, key: gtk4::gdk::Key, mods: gtk4::gdk::ModifierType) -> glib::Propagation {
         use gtk4::gdk::Key as K;
         use gtk4::gdk::ModifierType as Mod;
 
@@ -353,22 +351,30 @@ impl CopyDeckPopup {
     }
 
     fn move_selection(&self, delta: i32) {
-        let pinned  = self.pinned.lock().unwrap();
+        let pinned = self.pinned.lock().unwrap();
         let history = self.history.lock().unwrap();
 
-        let in_pinned  = pinned.list_box.selected_row().is_some();
+        let in_pinned = pinned.list_box.selected_row().is_some();
         let in_history = !in_pinned && history.list_box.selected_row().is_some();
 
         if in_pinned {
             if delta < 0 {
                 // Move up within pinned; stop at the top row.
-                let idx = pinned.list_box.selected_row().map(|r| r.index()).unwrap_or(0);
+                let idx = pinned
+                    .list_box
+                    .selected_row()
+                    .map(|r| r.index())
+                    .unwrap_or(0);
                 if idx > 0 {
                     pinned.select_prev();
                 }
             } else {
                 // Move down within pinned; at the last row jump to first history row.
-                let idx  = pinned.list_box.selected_row().map(|r| r.index()).unwrap_or(0);
+                let idx = pinned
+                    .list_box
+                    .selected_row()
+                    .map(|r| r.index())
+                    .unwrap_or(0);
                 let last = pinned.ordered_ids().len() as i32 - 1;
                 if idx >= last {
                     pinned.list_box.unselect_all();
@@ -380,7 +386,11 @@ impl CopyDeckPopup {
         } else if in_history {
             if delta < 0 {
                 // Move up within history; at the first row jump to last pinned row.
-                let idx = history.list_box.selected_row().map(|r| r.index()).unwrap_or(0);
+                let idx = history
+                    .list_box
+                    .selected_row()
+                    .map(|r| r.index())
+                    .unwrap_or(0);
                 if idx == 0 && !pinned.is_empty() {
                     history.list_box.unselect_all();
                     pinned.select_last();
@@ -406,12 +416,19 @@ impl CopyDeckPopup {
     fn toggle_pin(&self) {
         eprintln!("[copydeck] toggle_pin: start");
         let history_entry = { self.history.lock().unwrap().selected_entry().cloned() };
-        eprintln!("[copydeck] toggle_pin: history_entry={}", history_entry.is_some());
+        eprintln!(
+            "[copydeck] toggle_pin: history_entry={}",
+            history_entry.is_some()
+        );
 
         if let Some(entry) = history_entry {
             let content = entry.content.clone();
             eprintln!("[copydeck] toggle_pin: calling add_pin");
-            let _ = self.db.lock().unwrap().add_pin(&entry.content, &entry.mime_type, None);
+            let _ = self
+                .db
+                .lock()
+                .unwrap()
+                .add_pin(&entry.content, &entry.mime_type, None);
             eprintln!("[copydeck] toggle_pin: add_pin done, scheduling idle");
             let popup = self.clone();
             glib::idle_add_local(move || {
@@ -427,7 +444,10 @@ impl CopyDeckPopup {
         }
 
         let pinned_item = { self.pinned.lock().unwrap().selected_item().cloned() };
-        eprintln!("[copydeck] toggle_pin: pinned_item={}", pinned_item.is_some());
+        eprintln!(
+            "[copydeck] toggle_pin: pinned_item={}",
+            pinned_item.is_some()
+        );
 
         if let Some(item) = pinned_item {
             eprintln!("[copydeck] toggle_pin: calling remove_pin");
@@ -460,16 +480,18 @@ impl CopyDeckPopup {
     /// `direction > 0` (Tab): pinned → history, history → pinned.
     /// `direction < 0` (Shift+Tab): history → last pinned, pinned → first history.
     fn jump_section(&self, direction: i32) {
-        let pinned  = self.pinned.lock().unwrap();
+        let pinned = self.pinned.lock().unwrap();
         let history = self.history.lock().unwrap();
 
-        let in_pinned  = pinned.list_box.selected_row().is_some();
+        let in_pinned = pinned.list_box.selected_row().is_some();
         let in_history = !in_pinned && history.list_box.selected_row().is_some();
 
         if direction > 0 {
             if in_history {
                 history.list_box.unselect_all();
-                if !pinned.is_empty() { pinned.select_first(); }
+                if !pinned.is_empty() {
+                    pinned.select_first();
+                }
             } else {
                 pinned.list_box.unselect_all();
                 history.select_first();
@@ -480,7 +502,9 @@ impl CopyDeckPopup {
                 history.select_first();
             } else {
                 history.list_box.unselect_all();
-                if !pinned.is_empty() { pinned.select_last(); }
+                if !pinned.is_empty() {
+                    pinned.select_last();
+                }
             }
         }
     }

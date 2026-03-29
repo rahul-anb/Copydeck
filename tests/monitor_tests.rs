@@ -9,7 +9,7 @@
 
 use copydeck::{
     config::MonitorConfig,
-    monitor::{ClipboardMonitor, ClipboardEvent, ClipboardReader},
+    monitor::{ClipboardEvent, ClipboardMonitor, ClipboardReader},
     storage::CopySource,
 };
 use std::{
@@ -30,15 +30,17 @@ impl ClipboardReader for LocalMockReader {
 }
 
 /// Build a monitor backed by a `LocalMockReader` at 1 ms poll interval.
-fn mock_monitor(items: Vec<Option<&str>>)
--> (std::sync::mpsc::Receiver<ClipboardEvent>, copydeck::monitor::MonitorHandle)
-{
-    let reader = LocalMockReader(
-        items.into_iter()
-            .map(|o| o.map(str::to_owned))
-            .collect(),
-    );
-    let cfg = MonitorConfig { poll_interval_ms: 1, ..MonitorConfig::default() };
+fn mock_monitor(
+    items: Vec<Option<&str>>,
+) -> (
+    std::sync::mpsc::Receiver<ClipboardEvent>,
+    copydeck::monitor::MonitorHandle,
+) {
+    let reader = LocalMockReader(items.into_iter().map(|o| o.map(str::to_owned)).collect());
+    let cfg = MonitorConfig {
+        poll_interval_ms: 1,
+        ..MonitorConfig::default()
+    };
     ClipboardMonitor::new(None, &cfg).start_with_reader(Box::new(reader))
 }
 
@@ -48,7 +50,7 @@ fn collect(rx: &std::sync::mpsc::Receiver<ClipboardEvent>, max_ms: u64) -> Vec<C
     let mut events = Vec::new();
     while std::time::Instant::now() < deadline {
         match rx.try_recv() {
-            Ok(e)  => events.push(e),
+            Ok(e) => events.push(e),
             Err(_) => std::thread::sleep(Duration::from_millis(2)),
         }
     }
@@ -59,21 +61,25 @@ fn collect(rx: &std::sync::mpsc::Receiver<ClipboardEvent>, max_ms: u64) -> Vec<C
 
 #[test]
 fn consecutive_duplicates_emit_one_event() {
-    let (rx, _h) = mock_monitor(vec![
-        Some("dup"), Some("dup"), Some("dup"),
-    ]);
+    let (rx, _h) = mock_monitor(vec![Some("dup"), Some("dup"), Some("dup")]);
     let events = collect(&rx, 80);
-    assert_eq!(events.len(), 1, "consecutive duplicates must emit exactly one event");
+    assert_eq!(
+        events.len(),
+        1,
+        "consecutive duplicates must emit exactly one event"
+    );
 }
 
 #[test]
 fn non_consecutive_duplicates_emit_two_events() {
     // "a" → "b" → "a" : all three are distinct consecutive pairs, so 3 events.
-    let (rx, _h) = mock_monitor(vec![
-        Some("a"), Some("b"), Some("a"),
-    ]);
+    let (rx, _h) = mock_monitor(vec![Some("a"), Some("b"), Some("a")]);
     let events = collect(&rx, 80);
-    assert_eq!(events.len(), 3, "non-consecutive duplicates must each emit an event");
+    assert_eq!(
+        events.len(),
+        3,
+        "non-consecutive duplicates must each emit an event"
+    );
 }
 
 // ── Source attribution ────────────────────────────────────────────────────────
@@ -81,8 +87,11 @@ fn non_consecutive_duplicates_emit_two_events() {
 #[test]
 fn passive_copy_is_attributed_ctrl_c() {
     let (rx, _h) = mock_monitor(vec![Some("hello")]);
-    let events   = collect(&rx, 80);
-    let ev = events.iter().find(|e| e.content == "hello").expect("event must arrive");
+    let events = collect(&rx, 80);
+    let ev = events
+        .iter()
+        .find(|e| e.content == "hello")
+        .expect("event must arrive");
     assert_eq!(ev.source, CopySource::CtrlC, "passive copy must be CtrlC");
 }
 
@@ -92,7 +101,7 @@ fn passive_copy_is_attributed_ctrl_c() {
 fn event_mime_type_defaults_to_text_plain_in_headless_mode() {
     // Without a display server, enrich_mime falls back to text/plain.
     let (rx, _h) = mock_monitor(vec![Some("some text")]);
-    let events   = collect(&rx, 80);
+    let events = collect(&rx, 80);
     assert!(!events.is_empty(), "event must be emitted");
     assert_eq!(events[0].mime_type, "text/plain");
 }
@@ -105,8 +114,11 @@ fn ignore_next_suppresses_one_event() {
     // After the flag clears, the same content is read normally.
     use std::sync::atomic::Ordering;
     let clipboard = Arc::new(Mutex::new(None::<String>));
-    let reader    = SharedClipboard(Arc::clone(&clipboard));
-    let cfg       = MonitorConfig { poll_interval_ms: 30, ..MonitorConfig::default() };
+    let reader = SharedClipboard(Arc::clone(&clipboard));
+    let cfg = MonitorConfig {
+        poll_interval_ms: 30,
+        ..MonitorConfig::default()
+    };
     let (rx, handle) = ClipboardMonitor::new(None, &cfg).start_with_reader(Box::new(reader));
 
     *clipboard.lock().unwrap() = Some("secret".to_owned());
@@ -118,22 +130,30 @@ fn ignore_next_suppresses_one_event() {
 
     // Second poll — now emitted.
     let events = collect(&rx, 200);
-    assert!(events.iter().any(|e| e.content == "secret"), "second poll must emit");
+    assert!(
+        events.iter().any(|e| e.content == "secret"),
+        "second poll must emit"
+    );
 }
 
 #[test]
 fn super_c_flag_attributes_source_correctly() {
     use std::sync::atomic::Ordering;
     let clipboard = Arc::new(Mutex::new(None::<String>));
-    let reader    = SharedClipboard(Arc::clone(&clipboard));
-    let cfg       = MonitorConfig { poll_interval_ms: 30, ..MonitorConfig::default() };
+    let reader = SharedClipboard(Arc::clone(&clipboard));
+    let cfg = MonitorConfig {
+        poll_interval_ms: 30,
+        ..MonitorConfig::default()
+    };
     let (rx, handle) = ClipboardMonitor::new(None, &cfg).start_with_reader(Box::new(reader));
 
     handle.super_c_pressed.store(true, Ordering::SeqCst);
     *clipboard.lock().unwrap() = Some("via super+c".to_owned());
 
     let events = collect(&rx, 200);
-    let ev = events.iter().find(|e| e.content == "via super+c")
+    let ev = events
+        .iter()
+        .find(|e| e.content == "via super+c")
         .expect("event must arrive");
     assert_eq!(ev.source, CopySource::SuperC, "event source must be SuperC");
 }
@@ -154,18 +174,24 @@ fn dropping_handle_disconnects_channel() {
 fn multiline_content_preserved() {
     let content = include_str!("fixtures/multiline.txt");
     let (rx, _h) = mock_monitor(vec![Some(content)]);
-    let events   = collect(&rx, 80);
+    let events = collect(&rx, 80);
     assert!(!events.is_empty(), "must emit event for multiline content");
-    assert_eq!(events[0].content, content, "content must be preserved exactly");
+    assert_eq!(
+        events[0].content, content,
+        "content must be preserved exactly"
+    );
 }
 
 #[test]
 fn unicode_content_preserved() {
     let content = include_str!("fixtures/unicode.txt");
     let (rx, _h) = mock_monitor(vec![Some(content)]);
-    let events   = collect(&rx, 80);
+    let events = collect(&rx, 80);
     assert!(!events.is_empty(), "must emit event for unicode content");
-    assert_eq!(events[0].content, content, "unicode content must be preserved");
+    assert_eq!(
+        events[0].content, content,
+        "unicode content must be preserved"
+    );
 }
 
 // ── SharedClipboard helper ─────────────────────────────────────────────────────

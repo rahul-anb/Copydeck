@@ -36,11 +36,15 @@ pub struct Dep {
 /// Order determines the display order in the status table.
 pub static DEPS: &[Dep] = &[
     Dep {
-        name:         if cfg!(feature = "ui") { "libgtk-4  (UI)" } else { "libgtk-4  (headless build — UI not compiled in)" },
-        check:        DepCheck::PkgConfig("gtk4"),
+        name: if cfg!(feature = "ui") {
+            "libgtk-4  (UI)"
+        } else {
+            "libgtk-4  (headless build — UI not compiled in)"
+        },
+        check: DepCheck::PkgConfig("gtk4"),
         // Only required at runtime when compiled with the `ui` feature.
         // A headless build never loads GTK.
-        required:     cfg!(feature = "ui"),
+        required: cfg!(feature = "ui"),
         install_hint: if cfg!(feature = "ui") {
             "sudo apt install libgtk-4-1"
         } else {
@@ -48,21 +52,21 @@ pub static DEPS: &[Dep] = &[
         },
     },
     Dep {
-        name:         "xdotool  (X11 paste injection)",
-        check:        DepCheck::Binary("xdotool"),
-        required:     false,
+        name: "xdotool  (X11 paste injection)",
+        check: DepCheck::Binary("xdotool"),
+        required: false,
         install_hint: "sudo apt install xdotool",
     },
     Dep {
-        name:         "ydotool  (Wayland paste injection)",
-        check:        DepCheck::Binary("ydotool"),
-        required:     false,
+        name: "ydotool  (Wayland paste injection)",
+        check: DepCheck::Binary("ydotool"),
+        required: false,
         install_hint: "sudo apt install ydotool",
     },
     Dep {
-        name:         "wl-paste (Wayland clipboard)",
-        check:        DepCheck::Binary("wl-paste"),
-        required:     false,
+        name: "wl-paste (Wayland clipboard)",
+        check: DepCheck::Binary("wl-paste"),
+        required: false,
         install_hint: "sudo apt install wl-clipboard",
     },
 ];
@@ -72,15 +76,15 @@ pub static DEPS: &[Dep] = &[
 /// The outcome of a single dependency check.
 #[derive(Debug)]
 pub struct DepStatus<'a> {
-    pub dep:       &'a Dep,
+    pub dep: &'a Dep,
     pub available: bool,
     /// Version string when discoverable (e.g. from `pkg-config`).
-    pub version:   Option<String>,
+    pub version: Option<String>,
 }
 
 impl fmt::Display for DepStatus<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let icon    = if self.available { "[OK]" } else { "[--]" };
+        let icon = if self.available { "[OK]" } else { "[--]" };
         let version = self.version.as_deref().unwrap_or("");
         write!(f, "{:<36} {:<6} {}", self.dep.name, icon, version)
     }
@@ -98,13 +102,15 @@ impl Dep {
                     .output();
                 match out {
                     Ok(o) if o.status.success() => DepStatus {
-                        dep:       self,
+                        dep: self,
                         available: true,
-                        version:   Some(
-                            String::from_utf8_lossy(&o.stdout).trim().to_owned(),
-                        ),
+                        version: Some(String::from_utf8_lossy(&o.stdout).trim().to_owned()),
                     },
-                    _ => DepStatus { dep: self, available: false, version: None },
+                    _ => DepStatus {
+                        dep: self,
+                        available: false,
+                        version: None,
+                    },
                 }
             }
             DepCheck::Binary(bin) => {
@@ -113,7 +119,11 @@ impl Dep {
                     .output()
                     .map(|o| o.status.success())
                     .unwrap_or(false);
-                DepStatus { dep: self, available: ok, version: None }
+                DepStatus {
+                    dep: self,
+                    available: ok,
+                    version: None,
+                }
             }
         }
     }
@@ -128,10 +138,7 @@ pub fn check_all() -> Vec<DepStatus<'static>> {
 ///
 /// Returns `true` when all *required* dependencies are available.
 pub fn print_status(statuses: &[DepStatus<'_>]) -> bool {
-    println!(
-        "{:<36} {:<6} {}",
-        "Dependency", "Status", "Version"
-    );
+    println!("{:<36} {:<6} {}", "Dependency", "Status", "Version");
     println!("{}", "─".repeat(60));
 
     let mut all_required_ok = true;

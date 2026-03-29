@@ -49,9 +49,9 @@ use crate::utils::display::DisplayServer;
 
 /// The top-level daemon that owns all CopyDeck components.
 pub struct CopyDeckDaemon {
-    config:   Config,
-    db:       Arc<Mutex<StorageManager>>,
-    ds:       Option<DisplayServer>,
+    config: Config,
+    db: Arc<Mutex<StorageManager>>,
+    ds: Option<DisplayServer>,
 }
 
 impl CopyDeckDaemon {
@@ -104,7 +104,7 @@ impl CopyDeckDaemon {
 
         // ── IPC server ─────────────────────────────────────────────────────
         let socket_path = crate::ipc::default_socket_path();
-        let ipc_server  = IpcServer::bind(&socket_path)
+        let ipc_server = IpcServer::bind(&socket_path)
             .with_context(|| format!("binding IPC socket {}", socket_path.display()))?;
 
         let (ipc_tx, ipc_rx) = mpsc::channel::<IpcAction>();
@@ -164,13 +164,7 @@ impl CopyDeckDaemon {
 
         #[cfg(not(feature = "ui"))]
         {
-            self.run_headless_loop(
-                monitor_rx,
-                ipc_rx,
-                paste_engine,
-                hotkey_manager,
-                paused,
-            )
+            self.run_headless_loop(monitor_rx, ipc_rx, paste_engine, hotkey_manager, paused)
         }
     }
 
@@ -205,11 +199,11 @@ impl CopyDeckDaemon {
     #[cfg(not(feature = "ui"))]
     fn run_headless_loop(
         self,
-        monitor_rx:     mpsc::Receiver<ClipboardEvent>,
-        ipc_rx:         mpsc::Receiver<IpcAction>,
-        _paste_engine:  Arc<PasteEngine>,
+        monitor_rx: mpsc::Receiver<ClipboardEvent>,
+        ipc_rx: mpsc::Receiver<IpcAction>,
+        _paste_engine: Arc<PasteEngine>,
         _hotkey_manager: Option<HotkeyManager>,
-        paused:         Arc<AtomicBool>,
+        paused: Arc<AtomicBool>,
     ) -> Result<()> {
         loop {
             // Drain monitor events.
@@ -248,26 +242,26 @@ impl CopyDeckDaemon {
     #[cfg(feature = "ui")]
     fn run_gtk_loop(
         self,
-        monitor_rx:     mpsc::Receiver<ClipboardEvent>,
+        monitor_rx: mpsc::Receiver<ClipboardEvent>,
         monitor_handle: crate::monitor::MonitorHandle,
-        ipc_rx:         mpsc::Receiver<IpcAction>,
-        paste_engine:   Arc<PasteEngine>,
+        ipc_rx: mpsc::Receiver<IpcAction>,
+        paste_engine: Arc<PasteEngine>,
         hotkey_manager: Option<HotkeyManager>,
-        paused:         Arc<AtomicBool>,
+        paused: Arc<AtomicBool>,
     ) -> Result<()> {
         use gtk4::prelude::*;
         use gtk4::Application;
         // Use glib through gtk4 re-export so the version matches gtk4 0.7.
         use gtk4::glib;
-        use std::rc::Rc;
         use std::cell::RefCell;
+        use std::rc::Rc;
 
         let app = Application::builder()
             .application_id("io.copydeck.CopyDeck")
             .build();
 
-        let db     = Arc::clone(&self.db);
-        let ds     = self.ds;
+        let db = Arc::clone(&self.db);
+        let ds = self.ds;
         let config = self.config.clone();
 
         // connect_activate is Fn (not FnOnce), so values that would be moved
@@ -275,8 +269,8 @@ impl CopyDeckDaemon {
         // created *outside* the Fn closure.  Only Rc::clone (a borrow) happens
         // inside the closure, which is allowed.
         let monitor_rx_cell = Rc::new(RefCell::new(Some(monitor_rx)));
-        let ipc_rx_cell     = Rc::new(RefCell::new(Some(ipc_rx)));
-        let hk_mgr_cell     = Rc::new(RefCell::new(hotkey_manager));
+        let ipc_rx_cell = Rc::new(RefCell::new(Some(ipc_rx)));
+        let hk_mgr_cell = Rc::new(RefCell::new(hotkey_manager));
 
         app.connect_activate(move |app| {
             // Keep the GApplication alive even when no windows are visible.
@@ -312,7 +306,7 @@ impl CopyDeckDaemon {
             }
 
             // Process clipboard events on the GTK main thread.
-            let db_clone      = Arc::clone(&db);
+            let db_clone = Arc::clone(&db);
             let paused_attach = Arc::clone(&paused);
             let history_limit = config.general.history_limit;
             monitor_glib_rx.attach(None, move |event| {
@@ -331,10 +325,10 @@ impl CopyDeckDaemon {
             });
 
             // Poll IPC + hotkeys at 50 ms intervals.
-            let popup_ref      = popup.clone();
-            let popup_ref2     = popup.clone();
-            let ipc_cell_ref   = Rc::clone(&ipc_rx_cell);
-            let hk_cell_ref    = Rc::clone(&hk_mgr_cell);
+            let popup_ref = popup.clone();
+            let popup_ref2 = popup.clone();
+            let ipc_cell_ref = Rc::clone(&ipc_rx_cell);
+            let hk_cell_ref = Rc::clone(&hk_mgr_cell);
             let paused_timeout = Arc::clone(&paused);
 
             glib::timeout_add_local(std::time::Duration::from_millis(50), move || {
@@ -344,10 +338,10 @@ impl CopyDeckDaemon {
                     if let Some(rx) = borrow.as_ref() {
                         for action in rx.try_iter() {
                             match action {
-                                IpcAction::Open      => popup_ref.show(false),
+                                IpcAction::Open => popup_ref.show(false),
                                 IpcAction::OpenPaste => popup_ref.show(true),
-                                IpcAction::Pause     => paused_timeout.store(true,  Ordering::Relaxed),
-                                IpcAction::Resume    => paused_timeout.store(false, Ordering::Relaxed),
+                                IpcAction::Pause => paused_timeout.store(true, Ordering::Relaxed),
+                                IpcAction::Resume => paused_timeout.store(false, Ordering::Relaxed),
                             }
                         }
                     }
@@ -359,7 +353,7 @@ impl CopyDeckDaemon {
                     if let Some(mgr) = borrow.as_ref() {
                         while let Some(action) = mgr.try_next() {
                             match action {
-                                HotkeyAction::OpenHistory  => popup_ref2.show(false),
+                                HotkeyAction::OpenHistory => popup_ref2.show(false),
                                 HotkeyAction::OpenAndPaste => popup_ref2.show(true),
                             }
                         }
@@ -371,8 +365,8 @@ impl CopyDeckDaemon {
         });
 
         let _monitor_handle = monitor_handle; // keep alive until app exits
-        // Pass only the program name; omit subcommand args so GApplication
-        // does not try to "open" them as files and exit immediately.
+                                              // Pass only the program name; omit subcommand args so GApplication
+                                              // does not try to "open" them as files and exit immediately.
         app.run_with_args(&["copydeck"]);
         Ok(())
     }
@@ -383,13 +377,11 @@ impl CopyDeckDaemon {
     fn store_clipboard_event(&self, event: ClipboardEvent) {
         let limit = self.config.general.history_limit;
         match self.db.lock() {
-            Ok(db) => {
-                match db.add_history(&event.content, &event.mime_type, event.source, limit) {
-                    Ok(Some(id)) => debug!(id, "History entry added"),
-                    Ok(None)     => debug!("Clipboard event deduplicated"),
-                    Err(e)       => error!("Failed to store clipboard event: {e}"),
-                }
-            }
+            Ok(db) => match db.add_history(&event.content, &event.mime_type, event.source, limit) {
+                Ok(Some(id)) => debug!(id, "History entry added"),
+                Ok(None) => debug!("Clipboard event deduplicated"),
+                Err(e) => error!("Failed to store clipboard event: {e}"),
+            },
             Err(e) => error!("DB lock poisoned: {e}"),
         }
     }
@@ -467,9 +459,13 @@ mod tests {
         let p = lock_file_path();
         assert!(
             p.to_string_lossy().contains("copydeck"),
-            "lock path must mention copydeck: {}", p.display()
+            "lock path must mention copydeck: {}",
+            p.display()
         );
-        assert_eq!(p.file_name().and_then(|n| n.to_str()), Some("copydeck.lock"));
+        assert_eq!(
+            p.file_name().and_then(|n| n.to_str()),
+            Some("copydeck.lock")
+        );
     }
 
     #[test]

@@ -57,7 +57,7 @@ impl DisplayServer {
 impl fmt::Display for DisplayServer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::X11     => write!(f, "X11"),
+            Self::X11 => write!(f, "X11"),
             Self::Wayland => write!(f, "Wayland"),
         }
     }

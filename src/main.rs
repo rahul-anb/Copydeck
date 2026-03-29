@@ -26,8 +26,7 @@ fn main() -> Result<()> {
 
     // Initialise structured logging.
     // Set COPYDECK_LOG=debug (or trace/warn/error) to override the level.
-    let filter = std::env::var("COPYDECK_LOG")
-        .unwrap_or_else(|_| "copydeck=info".to_owned());
+    let filter = std::env::var("COPYDECK_LOG").unwrap_or_else(|_| "copydeck=info".to_owned());
 
     tracing_subscriber::fmt()
         .with_env_filter(filter)
@@ -58,7 +57,11 @@ fn cmd_start() -> Result<()> {
 /// Open the clipboard popup (optionally in paste mode).
 fn cmd_open(paste: bool) -> Result<()> {
     info!(paste, "Open popup requested via CLI");
-    let action = if paste { IpcAction::OpenPaste } else { IpcAction::Open };
+    let action = if paste {
+        IpcAction::OpenPaste
+    } else {
+        IpcAction::Open
+    };
     IpcClient::with_default_path().send(action)
 }
 
@@ -77,15 +80,15 @@ fn cmd_resume() -> Result<()> {
 /// Dispatch pin subcommands.
 fn cmd_pin(sub: PinCommand) -> Result<()> {
     let cfg = Config::load()?;
-    let db  = StorageManager::open(&cfg.resolved_db_path())?;
+    let db = StorageManager::open(&cfg.resolved_db_path())?;
 
     match sub {
         PinCommand::Add { content, label } => {
             info!(?label, "Pin add");
             let id = db.add_pin(&content, "text/plain", label.as_deref())?;
-            let display = label.as_deref().unwrap_or_else(|| {
-                content.lines().next().unwrap_or(&content)
-            });
+            let display = label
+                .as_deref()
+                .unwrap_or_else(|| content.lines().next().unwrap_or(&content));
             println!("Pinned #{id}: {}", truncate(display, 72));
         }
 
@@ -100,9 +103,7 @@ fn cmd_pin(sub: PinCommand) -> Result<()> {
                     let display = pin
                         .label
                         .as_deref()
-                        .unwrap_or_else(|| {
-                            pin.content.lines().next().unwrap_or(&pin.content)
-                        });
+                        .unwrap_or_else(|| pin.content.lines().next().unwrap_or(&pin.content));
                     println!("{:>4}  {}", pin.id, truncate(display, 54));
                 }
             }
@@ -124,13 +125,13 @@ fn cmd_pin(sub: PinCommand) -> Result<()> {
             let exports: Vec<PinExport> = pins
                 .into_iter()
                 .map(|p| PinExport {
-                    label:     p.label,
-                    content:   p.content,
+                    label: p.label,
+                    content: p.content,
                     mime_type: p.mime_type,
                 })
                 .collect();
-            let json = serde_json::to_string_pretty(&exports)
-                .context("serialising pins to JSON")?;
+            let json =
+                serde_json::to_string_pretty(&exports).context("serialising pins to JSON")?;
 
             match output {
                 Some(path) => {
@@ -180,21 +181,26 @@ fn cmd_pin(sub: PinCommand) -> Result<()> {
 /// JSON record used by `copydeck pin export` / `copydeck pin import`.
 #[derive(Serialize, Deserialize)]
 struct PinExport {
-    label:     Option<String>,
-    content:   String,
+    label: Option<String>,
+    content: String,
     mime_type: String,
 }
 
 /// Check and report all system dependencies.
 fn cmd_check_deps() -> Result<()> {
     let statuses = deps::check_all();
-    let all_ok   = deps::print_status(&statuses);
+    let all_ok = deps::print_status(&statuses);
 
     println!();
 
     match DisplayServer::detect() {
-        Some(ds) => println!("Display server   : {ds}  (hotkeys: {})",
-            if ds.is_x11() { "native XGrabKey" } else { "dconf custom shortcut" }
+        Some(ds) => println!(
+            "Display server   : {ds}  (hotkeys: {})",
+            if ds.is_x11() {
+                "native XGrabKey"
+            } else {
+                "dconf custom shortcut"
+            }
         ),
         None => println!("Display server   : not detected (headless / TTY?)"),
     }
@@ -246,7 +252,10 @@ fn cmd_install_service() -> Result<()> {
             .status()
             .with_context(|| format!("running systemctl {}", args.join(" ")))?;
         if !status.success() {
-            eprintln!("Warning: `systemctl {}` exited with {status}", args.join(" "));
+            eprintln!(
+                "Warning: `systemctl {}` exited with {status}",
+                args.join(" ")
+            );
         }
     }
     println!("CopyDeck service enabled and started.");
@@ -272,7 +281,7 @@ fn cmd_config(key: Option<String>, value: Option<String>) -> Result<()> {
     match (key, value) {
         (None, _) => {
             // Print the entire config as TOML.
-            let cfg  = Config::load()?;
+            let cfg = Config::load()?;
             let toml = toml::to_string_pretty(&cfg)?;
             print!("{toml}");
         }

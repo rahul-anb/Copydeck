@@ -70,7 +70,8 @@ fn add_history_stores_content_and_mime() {
 #[test]
 fn add_history_stores_source_ctrl_c() {
     let db = db();
-    db.add_history("x", "text/plain", CopySource::CtrlC, 200).unwrap();
+    db.add_history("x", "text/plain", CopySource::CtrlC, 200)
+        .unwrap();
     let rows = db.get_history(1, 0).unwrap();
     assert_eq!(rows[0].source, CopySource::CtrlC);
 }
@@ -78,7 +79,8 @@ fn add_history_stores_source_ctrl_c() {
 #[test]
 fn add_history_stores_source_super_c() {
     let db = db();
-    db.add_history("y", "text/plain", CopySource::SuperC, 200).unwrap();
+    db.add_history("y", "text/plain", CopySource::SuperC, 200)
+        .unwrap();
     let rows = db.get_history(1, 0).unwrap();
     assert_eq!(rows[0].source, CopySource::SuperC);
 }
@@ -86,11 +88,14 @@ fn add_history_stores_source_super_c() {
 #[test]
 fn add_history_deduplicates_consecutive_identical() {
     let db = db();
-    let first  = insert(&db, "dup");
+    let first = insert(&db, "dup");
     let second = insert(&db, "dup");
 
-    assert!(first.is_some(),  "first insert should succeed");
-    assert!(second.is_none(), "second identical insert should be a no-op");
+    assert!(first.is_some(), "first insert should succeed");
+    assert!(
+        second.is_none(),
+        "second identical insert should be a no-op"
+    );
     assert_eq!(db.get_history(10, 0).unwrap().len(), 1);
 }
 
@@ -152,7 +157,9 @@ fn get_history_returns_newest_first() {
 #[test]
 fn get_history_respects_limit() {
     let db = db();
-    for i in 0..5 { insert(&db, &format!("e{i}")); }
+    for i in 0..5 {
+        insert(&db, &format!("e{i}"));
+    }
     let rows = db.get_history(3, 0).unwrap();
     assert_eq!(rows.len(), 3);
 }
@@ -160,7 +167,9 @@ fn get_history_respects_limit() {
 #[test]
 fn get_history_pagination_is_consistent() {
     let db = db();
-    for i in 0..6 { insert(&db, &format!("e{i}")); }
+    for i in 0..6 {
+        insert(&db, &format!("e{i}"));
+    }
 
     let page1 = db.get_history(3, 0).unwrap();
     let page2 = db.get_history(3, 3).unwrap();
@@ -206,7 +215,9 @@ fn delete_history_returns_false_for_missing_id() {
 #[test]
 fn clear_history_removes_all_entries() {
     let db = db();
-    for i in 0..5 { insert(&db, &format!("e{i}")); }
+    for i in 0..5 {
+        insert(&db, &format!("e{i}"));
+    }
     let n = db.clear_history().unwrap();
     assert_eq!(n, 5);
     assert!(db.get_history(10, 0).unwrap().is_empty());
@@ -216,7 +227,9 @@ fn clear_history_removes_all_entries() {
 fn clear_history_does_not_affect_pins() {
     let db = db();
     db.add_pin("pinned", "text/plain", Some("label")).unwrap();
-    for i in 0..3 { insert(&db, &format!("h{i}")); }
+    for i in 0..3 {
+        insert(&db, &format!("h{i}"));
+    }
 
     db.clear_history().unwrap();
 
@@ -307,7 +320,7 @@ fn reorder_pins_changes_display_order() {
     let b = db.add_pin("B", "text/plain", None).unwrap();
     let c = db.add_pin("C", "text/plain", None).unwrap();
 
-    db.reorder_pins(&[c, b, a]).unwrap();   // reverse: C B A
+    db.reorder_pins(&[c, b, a]).unwrap(); // reverse: C B A
 
     let pins = db.get_pins().unwrap();
     assert_eq!(pins[0].content, "C");
@@ -320,9 +333,9 @@ fn reorder_pins_changes_display_order() {
 #[test]
 fn get_pins_returns_in_insertion_order_by_default() {
     let db = db();
-    db.add_pin("first",  "text/plain", None).unwrap();
+    db.add_pin("first", "text/plain", None).unwrap();
     db.add_pin("second", "text/plain", None).unwrap();
-    db.add_pin("third",  "text/plain", None).unwrap();
+    db.add_pin("third", "text/plain", None).unwrap();
 
     let pins = db.get_pins().unwrap();
     assert_eq!(pins[0].content, "first");
@@ -335,11 +348,17 @@ fn get_pins_returns_in_insertion_order_by_default() {
 #[test]
 fn ctrl_c_and_super_c_both_appear_in_history() {
     let db = db();
-    db.add_history("via ctrl",  "text/plain", CopySource::CtrlC,  200).unwrap();
-    db.add_history("via super", "text/plain", CopySource::SuperC, 200).unwrap();
+    db.add_history("via ctrl", "text/plain", CopySource::CtrlC, 200)
+        .unwrap();
+    db.add_history("via super", "text/plain", CopySource::SuperC, 200)
+        .unwrap();
 
     let rows = db.get_history(10, 0).unwrap();
-    assert_eq!(rows.len(), 2, "both copy sources must produce history entries");
+    assert_eq!(
+        rows.len(),
+        2,
+        "both copy sources must produce history entries"
+    );
 
     // Newest first.
     assert_eq!(rows[0].source, CopySource::SuperC);

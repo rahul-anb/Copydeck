@@ -4,12 +4,12 @@
 //! `Vec<PinnedItem>`.  Items can be reordered by dragging rows.  Emits a
 //! callback whenever the order changes so the storage layer can be updated.
 
+use gtk4::pango::EllipsizeMode;
 use gtk4::prelude::*;
 use gtk4::{
-    Box as GtkBox, DragSource, DropTarget,
-    Label, ListBox, ListBoxRow, Orientation, ScrolledWindow, SelectionMode,
+    Box as GtkBox, DragSource, DropTarget, Label, ListBox, ListBoxRow, Orientation, ScrolledWindow,
+    SelectionMode,
 };
-use gtk4::pango::EllipsizeMode;
 
 use crate::storage::PinnedItem;
 
@@ -19,8 +19,8 @@ use crate::storage::PinnedItem;
 pub struct PinnedList {
     pub scrolled: ScrolledWindow,
     pub list_box: ListBox,
-    items:        Vec<PinnedItem>,
-    max_preview:  usize,
+    items: Vec<PinnedItem>,
+    max_preview: usize,
 }
 
 impl PinnedList {
@@ -38,7 +38,12 @@ impl PinnedList {
             .propagate_natural_height(true)
             .build();
 
-        Self { scrolled, list_box, items: Vec::new(), max_preview: max_preview_lines }
+        Self {
+            scrolled,
+            list_box,
+            items: Vec::new(),
+            max_preview: max_preview_lines,
+        }
     }
 
     /// Replace all rows with `items` (ordered by `position`).
@@ -87,9 +92,9 @@ impl PinnedList {
             }
             // Widget tree: ListBoxRow → GtkBox (hbox) → content_vbox (GtkBox) → content_label
             let label = row
-                .first_child()                  // GtkBox (hbox)
-                .and_then(|b| b.first_child())  // content_vbox (GtkBox)
-                .and_then(|v| v.first_child())  // content label (Label)
+                .first_child() // GtkBox (hbox)
+                .and_then(|b| b.first_child()) // content_vbox (GtkBox)
+                .and_then(|v| v.first_child()) // content label (Label)
                 .and_downcast::<Label>();
             label
                 .map(|l| l.label().to_lowercase().contains(&q))
@@ -157,11 +162,7 @@ impl PinnedList {
 
     /// Move selection up one row and scroll to it.
     pub fn select_prev(&self) {
-        let idx = self
-            .list_box
-            .selected_row()
-            .map(|r| r.index())
-            .unwrap_or(1);
+        let idx = self.list_box.selected_row().map(|r| r.index()).unwrap_or(1);
         if idx > 0 {
             if let Some(row) = self.list_box.row_at_index(idx - 1) {
                 self.list_box.select_row(Some(&row));
@@ -182,16 +183,20 @@ impl PinnedList {
     fn ensure_row_visible(&self, row: ListBoxRow) {
         let scrolled = self.scrolled.clone();
         gtk4::glib::idle_add_local(move || {
-            let adj  = scrolled.vadjustment();
-            let cur  = adj.value();
+            let adj = scrolled.vadjustment();
+            let cur = adj.value();
             let page = adj.page_size();
-            if page <= 0.0 { return gtk4::glib::ControlFlow::Break; }
+            if page <= 0.0 {
+                return gtk4::glib::ControlFlow::Break;
+            }
 
             #[allow(deprecated)]
             let alloc = row.allocation();
-            let y     = alloc.y() as f64;
+            let y = alloc.y() as f64;
             let row_h = alloc.height() as f64;
-            if row_h <= 0.0 { return gtk4::glib::ControlFlow::Break; }
+            if row_h <= 0.0 {
+                return gtk4::glib::ControlFlow::Break;
+            }
 
             if y < cur {
                 adj.set_value(y.max(adj.lower()));
@@ -211,7 +216,9 @@ impl PinnedList {
         // call row.add_controller(drag_source) afterwards.
         let row_for_prepare = row.clone();
         drag_source.connect_prepare(move |_, _, _| {
-            Some(gtk4::gdk::ContentProvider::for_value(&row_for_prepare.index().to_value()))
+            Some(gtk4::gdk::ContentProvider::for_value(
+                &row_for_prepare.index().to_value(),
+            ))
         });
         row.add_controller(drag_source);
 
@@ -241,7 +248,7 @@ impl PinnedList {
 // ── Row builder ───────────────────────────────────────────────────────────────
 
 fn build_pinned_row(item: &PinnedItem, max_lines: usize) -> ListBoxRow {
-    let row  = ListBoxRow::new();
+    let row = ListBoxRow::new();
     let hbox = GtkBox::new(Orientation::Horizontal, 0);
     hbox.add_css_class("row-box");
 
@@ -284,7 +291,7 @@ fn build_preview(content: &str, max_lines: usize) -> (String, Option<String>) {
         return (content.to_owned(), None);
     }
     let preview = lines[..max_lines].join("\n");
-    let extra   = lines.len() - max_lines;
+    let extra = lines.len() - max_lines;
     (preview, Some(format!("↵ (+{extra} lines)")))
 }
 
@@ -297,11 +304,11 @@ mod tests {
     fn make_item(id: i64, content: &str, label: Option<&str>) -> PinnedItem {
         PinnedItem {
             id,
-            content:   content.to_owned(),
+            content: content.to_owned(),
             mime_type: "text/plain".to_owned(),
-            label:     label.map(str::to_owned),
+            label: label.map(str::to_owned),
             pinned_at: 0,
-            position:  id,
+            position: id,
         }
     }
 

@@ -33,9 +33,9 @@ use std::path::{Path, PathBuf};
 pub struct Config {
     pub general: GeneralConfig,
     pub hotkeys: HotkeyConfig,
-    pub ui:      UiConfig,
+    pub ui: UiConfig,
     pub storage: StorageConfig,
-    pub paste:   PasteConfig,
+    pub paste: PasteConfig,
     pub monitor: MonitorConfig,
 }
 
@@ -143,9 +143,9 @@ impl Default for Config {
         Self {
             general: GeneralConfig::default(),
             hotkeys: HotkeyConfig::default(),
-            ui:      UiConfig::default(),
+            ui: UiConfig::default(),
             storage: StorageConfig::default(),
-            paste:   PasteConfig::default(),
+            paste: PasteConfig::default(),
             monitor: MonitorConfig::default(),
         }
     }
@@ -154,7 +154,7 @@ impl Default for Config {
 impl Default for GeneralConfig {
     fn default() -> Self {
         Self {
-            history_limit:        200,
+            history_limit: 200,
             content_size_limit_kb: 512,
         }
     }
@@ -163,7 +163,7 @@ impl Default for GeneralConfig {
 impl Default for HotkeyConfig {
     fn default() -> Self {
         Self {
-            open_history:   "super+c".to_owned(),
+            open_history: "super+c".to_owned(),
             // Super+V is a GNOME built-in (notification panel) and cannot be
             // overridden by custom shortcuts.  Super+Shift+V is conflict-free.
             open_and_paste: "super+shift+v".to_owned(),
@@ -174,19 +174,21 @@ impl Default for HotkeyConfig {
 impl Default for UiConfig {
     fn default() -> Self {
         Self {
-            theme:             "auto".to_owned(),
-            popup_width:       580,
-            popup_height:      700,
+            theme: "auto".to_owned(),
+            popup_width: 580,
+            popup_height: 700,
             max_preview_lines: 3,
-            font:              "Monospace 13".to_owned(),
-            show_timestamps:   true,
+            font: "Monospace 13".to_owned(),
+            show_timestamps: true,
         }
     }
 }
 
 impl Default for StorageConfig {
     fn default() -> Self {
-        Self { db_path: default_db_path() }
+        Self {
+            db_path: default_db_path(),
+        }
     }
 }
 
@@ -197,7 +199,9 @@ impl Default for PasteConfig {
         // needs at least one frame (~16 ms) to unmap the window and transfer
         // focus; 300 ms gives comfortable headroom plus ydotool's own 100 ms
         // built-in startup delay.
-        Self { focus_restore_delay_ms: 300 }
+        Self {
+            focus_restore_delay_ms: 300,
+        }
     }
 }
 
@@ -238,8 +242,7 @@ impl Config {
         let raw = std::fs::read_to_string(path)
             .with_context(|| format!("reading config file {}", path.display()))?;
 
-        toml::from_str(&raw)
-            .with_context(|| format!("parsing config file {}", path.display()))
+        toml::from_str(&raw).with_context(|| format!("parsing config file {}", path.display()))
     }
 
     /// Write the current configuration to the default path, creating
@@ -251,8 +254,7 @@ impl Config {
                 .with_context(|| format!("creating config directory {}", dir.display()))?;
         }
 
-        let contents = toml::to_string_pretty(self)
-            .context("serialising config to TOML")?;
+        let contents = toml::to_string_pretty(self).context("serialising config to TOML")?;
 
         std::fs::write(&path, contents)
             .with_context(|| format!("writing config file {}", path.display()))

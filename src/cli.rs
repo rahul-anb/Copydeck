@@ -14,13 +14,13 @@ use std::path::PathBuf;
 /// previous entry.  Pinned items persist across reboots.
 #[derive(Parser, Debug)]
 #[command(
-    name    = "copydeck",
+    name = "copydeck",
     version,
     author,
     about,
     propagate_version = true,
     subcommand_required = true,
-    arg_required_else_help = true,
+    arg_required_else_help = true
 )]
 pub struct Cli {
     #[command(subcommand)]

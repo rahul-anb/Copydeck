@@ -45,7 +45,7 @@ use crate::utils::display::DisplayServer;
 /// A single `PasteEngine` is created at daemon startup and shared with the
 /// UI via `Arc`.
 pub struct PasteEngine {
-    config:         PasteConfig,
+    config: PasteConfig,
     display_server: Option<DisplayServer>,
 
     /// Set `true` on the [`crate::monitor::MonitorHandle`] before writing to
@@ -65,11 +65,15 @@ impl PasteEngine {
     /// `ignore_next` should be the atomic flag from the running
     /// [`MonitorHandle`](crate::monitor::MonitorHandle).
     pub fn new(
-        config:         PasteConfig,
+        config: PasteConfig,
         display_server: Option<DisplayServer>,
-        ignore_next:    Arc<AtomicBool>,
+        ignore_next: Arc<AtomicBool>,
     ) -> Self {
-        Self { config, display_server, ignore_next }
+        Self {
+            config,
+            display_server,
+            ignore_next,
+        }
     }
 
     /// Write `content` to the clipboard and inject `Ctrl+V` into the
@@ -134,7 +138,9 @@ impl PasteEngine {
             .spawn()
             .context("spawning wl-copy")?;
         if let Some(mut stdin) = child.stdin.take() {
-            stdin.write_all(content.as_bytes()).context("writing to wl-copy stdin")?;
+            stdin
+                .write_all(content.as_bytes())
+                .context("writing to wl-copy stdin")?;
         }
         debug!("wl-copy clipboard write ({} bytes)", content.len());
         Ok(())
@@ -173,9 +179,7 @@ impl PasteEngine {
         // The raw evdev-code format "29:1 47:1 47:0 29:0" is NOT supported by
         // this ydotool version and causes it to press the first digit of each
         // argument as a literal key — producing "2442" instead of Ctrl+V.
-        let status = Command::new("ydotool")
-            .args(["key", "ctrl+v"])
-            .status();
+        let status = Command::new("ydotool").args(["key", "ctrl+v"]).status();
 
         match status {
             Ok(s) if s.success() => {
@@ -205,8 +209,7 @@ impl PasteEngine {
     fn inject_via_enigo(&self) -> Result<()> {
         use enigo::{Direction, Enigo, Key, Keyboard, Settings};
 
-        let mut enigo = Enigo::new(&Settings::default())
-            .context("initialising enigo")?;
+        let mut enigo = Enigo::new(&Settings::default()).context("initialising enigo")?;
 
         enigo
             .key(Key::Control, Direction::Press)
@@ -311,12 +314,8 @@ mod tests {
 
     #[test]
     fn ignore_next_set_before_clipboard_write() {
-        let flag   = Arc::new(AtomicBool::new(false));
-        let engine = PasteEngine::new(
-            PasteConfig::default(),
-            None,
-            Arc::clone(&flag),
-        );
+        let flag = Arc::new(AtomicBool::new(false));
+        let engine = PasteEngine::new(PasteConfig::default(), None, Arc::clone(&flag));
 
         // paste() must set ignore_next before touching the clipboard.
         // We can't call paste() in headless CI (no clipboard), but we CAN
