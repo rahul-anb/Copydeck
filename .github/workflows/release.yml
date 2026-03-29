@@ -1,0 +1,111 @@
+name: Release
+
+# Triggered by a version tag: git tag v0.2.0 && git push --tags
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build-deb:
+    name: Build .deb (${{ matrix.arch }})
+    runs-on: ubuntu-22.04
+
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            target: x86_64-unknown-linux-gnu
+          - arch: arm64
+            target: aarch64-unknown-linux-gnu
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y pkg-config libgtk-4-dev gcc-aarch64-linux-gnu
+
+      - name: Install cargo-deb
+        run: cargo install cargo-deb --locked
+
+      - name: Build release binary
+        run: cargo build --release --features ui --target ${{ matrix.target }}
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+
+      # cargo-deb reads assets from target/release/ — symlink the cross-compiled output.
+      - name: Symlink binary for cargo-deb
+        if: matrix.arch == 'arm64'
+        run: |
+          cp target/${{ matrix.target }}/release/copydeck target/release/copydeck
+
+      - name: Build .deb package
+        run: cargo deb --no-build
+
+      - name: Rename .deb to include arch
+        run: |
+          cd target/debian
+          for f in *.deb; do
+            mv "$f" "${f%.deb}_${{ matrix.arch }}.deb"
+          done
+
+      - name: Upload .deb artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-${{ matrix.arch }}
+          path: target/debian/*.deb
+
+  create-release:
+    name: Create GitHub Release
+    needs: build-deb
+    runs-on: ubuntu-22.04
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all .deb artefacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: deb-*
+          merge-multiple: true
+          path: dist/
+
+      - name: Create release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          name: CopyDeck ${{ github.ref_name }}
+          body: |
+            ## Install
+
+            **Debian / Ubuntu (recommended)**
+            ```bash
+            # One-liner
+            curl -fsSL https://github.com/rahul-anb/Copydeck/releases/download/${{ github.ref_name }}/install.sh | bash
+
+            # Or download and install the .deb manually
+            sudo dpkg -i copydeck_*_amd64.deb   # x86_64
+            sudo dpkg -i copydeck_*_arm64.deb   # ARM64
+            sudo apt-get install -f              # resolve dependencies
+            copydeck install-service
+            ```
+
+            **pip (all Linux)**
+            ```bash
+            pip install copydeck==${{ github.ref_name }}
+            copydeck install-service
+            ```
+
+            See [README](https://github.com/rahul-anb/Copydeck#readme) for full setup instructions.
+          files: dist/*.deb
+          generate_release_notes: true

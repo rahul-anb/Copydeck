@@ -5,7 +5,7 @@ edition     = "2021"
 rust-version = "1.75"
 description = "A lightweight clipboard manager for Linux with persistent pinned items"
 license     = "MIT"
-repository  = "https://github.com/your-org/copydeck"
+repository  = "https://github.com/rahul-anb/Copydeck"
 keywords    = ["clipboard", "linux", "gtk", "productivity"]
 categories  = ["command-line-utilities"]
 readme      = "README.md"
@@ -78,6 +78,25 @@ enigo-paste = ["dep:enigo"]
 [dev-dependencies]
 # Property-based testing — used in Sprint 9
 # proptest = "1"   # uncomment when needed
+
+# ── Profile tweaks ────────────────────────────────────────────────────────────
+
+# ── Debian package metadata (used by cargo-deb) ──────────────────────────────
+
+[package.metadata.deb]
+name                 = "copydeck"
+maintainer           = "CopyDeck Contributors"
+copyright            = "2026, CopyDeck Contributors"
+license-file         = ["LICENSE", "2"]
+extended-description = "A lightweight clipboard manager for Linux with persistent pinned items, keyboard navigation, and format preservation."
+depends              = "libgtk-4-1, xdotool, ydotool"
+section              = "utils"
+priority             = "optional"
+assets = [
+    ["target/release/copydeck",            "usr/bin/copydeck",                        "755"],
+    ["packaging/copydeck.service",         "usr/share/copydeck/copydeck.service",     "644"],
+    ["README.md",                          "usr/share/doc/copydeck/README.md",        "644"],
+]
 
 # ── Profile tweaks ────────────────────────────────────────────────────────────
 

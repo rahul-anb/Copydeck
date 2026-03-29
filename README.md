@@ -8,70 +8,44 @@ A lightweight clipboard manager for Linux with persistent pinned items, keyboard
 - **Pinned items** persist across reboots
 - **GTK4 popup** — keyboard-navigable, live search, dark/light theme
 
-## Quick start
+## Install
+
+### One-liner (Debian / Ubuntu — recommended)
 
 ```bash
-# 1. Install system runtime libraries (pre-installed on Ubuntu 22+ desktop)
-sudo apt install libgtk-4-1 xdotool ydotool
-
-# 2. Install CopyDeck
-pip install copydeck
-
-# 3. Register the autostart service and hotkeys
-copydeck install-service
-
-# Log out and back in — CopyDeck starts automatically.
+curl -fsSL https://github.com/rahul-anb/Copydeck/releases/latest/download/install.sh | bash
 ```
 
-## Fresh system setup
+Downloads the pre-built `.deb` for your architecture, installs it with `apt`, and registers the service and hotkeys. Log out and back in when done.
 
-Use this checklist when setting up CopyDeck on a new machine.
+### Manual .deb install
 
-**1. System dependencies**
-
-```bash
-sudo apt install libgtk-4-1 xdotool ydotool
-```
-
-> `ydotool` is required for input injection on Wayland. On X11 `xdotool` alone is enough.
-
-**2. Python 3.10+**
+Download the latest `.deb` from the [Releases](https://github.com/rahul-anb/Copydeck/releases) page, then:
 
 ```bash
-python3 --version   # must be 3.10 or newer
-pip install --upgrade pip
-```
-
-**3. Install CopyDeck**
-
-```bash
-pip install copydeck
-```
-
-**4. Register the service and hotkeys**
-
-```bash
+sudo dpkg -i copydeck_*_amd64.deb   # x86_64
+sudo apt-get install -f              # pull in any missing runtime deps
 copydeck install-service
 ```
 
-This registers the systemd user service and sets `Super+C` / `Super+Shift+V` as GNOME keyboard shortcuts automatically.
-
-**5. Verify**
+### pip (any Linux)
 
 ```bash
-copydeck check-deps     # confirms all runtime libraries are present
-systemctl --user status copydeck   # should show "active (running)"
+pip install copydeck
+copydeck install-service
 ```
 
-**6. After a system update or reinstall**
+No Rust or compiler needed — pip downloads a pre-built binary wheel.
 
-If you reinstall CopyDeck or the binary changes, restart the daemon so the running process picks up the new binary:
+## After a reinstall
+
+If you reinstall or upgrade CopyDeck, restart the daemon to pick up the new binary:
 
 ```bash
 systemctl --user restart copydeck
 ```
 
-**Pins and history are stored in** `~/.local/share/copydeck/copydeck.db` — back this file up to preserve your pins across reinstalls.
+**Pins and history are stored in** `~/.local/share/copydeck/copydeck.db` — back this file up to preserve your data across reinstalls.
 
 ## Hotkeys
 
