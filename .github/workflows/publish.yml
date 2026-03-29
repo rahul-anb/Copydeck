@@ -41,7 +41,7 @@ jobs:
     name: Publish to PyPI
     needs: build
     runs-on: ubuntu-22.04
-    environment: pypi         # requires a PyPI Trusted Publisher environment
+    environment: pypi         # requires a PyPI Trusted Publisher — see README
 
     permissions:
       id-token: write         # required for PyPI OIDC Trusted Publishing
@@ -54,7 +54,5 @@ jobs:
           merge-multiple: true
           path: dist/
 
-      - uses: PyO3/maturin-action@v1
-        with:
-          command: upload
-          args:    --non-interactive --skip-existing dist/*
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
