@@ -13,7 +13,7 @@
 
 [Unit]
 Description=CopyDeck Clipboard Manager
-Documentation=https://github.com/your-org/copydeck
+Documentation=https://github.com/rahul-anb/Copydeck
 # Start after the graphical session is ready (display server available).
 After=graphical-session.target
 PartOf=graphical-session.target

@@ -23,6 +23,56 @@ copydeck install-service
 # Log out and back in — CopyDeck starts automatically.
 ```
 
+## Fresh system setup
+
+Use this checklist when setting up CopyDeck on a new machine.
+
+**1. System dependencies**
+
+```bash
+sudo apt install libgtk-4-1 xdotool ydotool
+```
+
+> `ydotool` is required for input injection on Wayland. On X11 `xdotool` alone is enough.
+
+**2. Python 3.10+**
+
+```bash
+python3 --version   # must be 3.10 or newer
+pip install --upgrade pip
+```
+
+**3. Install CopyDeck**
+
+```bash
+pip install copydeck
+```
+
+**4. Register the service and hotkeys**
+
+```bash
+copydeck install-service
+```
+
+This registers the systemd user service and sets `Super+C` / `Super+V` as GNOME keyboard shortcuts automatically.
+
+**5. Verify**
+
+```bash
+copydeck check-deps     # confirms all runtime libraries are present
+systemctl --user status copydeck   # should show "active (running)"
+```
+
+**6. After a system update or reinstall**
+
+If you reinstall CopyDeck or the binary changes, restart the daemon so the running process picks up the new binary:
+
+```bash
+systemctl --user restart copydeck
+```
+
+**Pins and history are stored in** `~/.local/share/copydeck/history.db` — back this file up to preserve your pins across reinstalls.
+
 ## Hotkeys
 
 | Key | Action |
