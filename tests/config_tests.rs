@@ -59,8 +59,8 @@ fn default_theme_is_auto() {
 }
 
 #[test]
-fn default_popup_width_is_480() {
-    assert_eq!(Config::default().ui.popup_width, 480);
+fn default_popup_width_is_580() {
+    assert_eq!(Config::default().ui.popup_width, 580);
 }
 
 #[test]
@@ -69,8 +69,8 @@ fn default_max_preview_lines_is_3() {
 }
 
 #[test]
-fn default_font_is_monospace_11() {
-    assert_eq!(Config::default().ui.font, "Monospace 11");
+fn default_font_is_monospace_13() {
+    assert_eq!(Config::default().ui.font, "Monospace 13");
 }
 
 #[test]
@@ -84,8 +84,8 @@ fn default_poll_interval_is_500ms() {
 }
 
 #[test]
-fn default_focus_restore_delay_is_80ms() {
-    assert_eq!(Config::default().paste.focus_restore_delay_ms, 80);
+fn default_focus_restore_delay_is_300ms() {
+    assert_eq!(Config::default().paste.focus_restore_delay_ms, 300);
 }
 
 #[test]

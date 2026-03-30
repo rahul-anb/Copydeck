@@ -348,8 +348,8 @@ mod tests {
     }
 
     #[test]
-    fn config_default_delay_is_80ms() {
+    fn config_default_delay_is_300ms() {
         use crate::config::PasteConfig;
-        assert_eq!(PasteConfig::default().focus_restore_delay_ms, 80);
+        assert_eq!(PasteConfig::default().focus_restore_delay_ms, 300);
     }
 }

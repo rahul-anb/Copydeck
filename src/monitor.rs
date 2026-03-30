@@ -362,9 +362,12 @@ const MIME_PRIORITY: &[&str] = &[
 /// Try to retrieve a richer MIME type for the clipboard content.
 ///
 /// On the first detected change, this function calls `xclip` (X11) or
-/// `wl-paste` (Wayland) to list the available MIME types and, if HTML or
-/// URI-list is offered, reads that content.  Falls back to `text/plain`
-/// gracefully when the tools are unavailable.
+/// `wl-paste` (Wayland) to list the available MIME types.
+///
+/// - `text/html` is read and **stripped to plain text** so history always
+///   shows readable content rather than raw markup (e.g. Slack copies).
+/// - `text/uri-list` is stored as-is.
+/// - Everything else falls back to the plain text already read by arboard.
 fn enrich_mime(plain_text: &str, display_server: Option<DisplayServer>) -> (String, String) {
     let Some(ds) = display_server else {
         return (plain_text.to_owned(), "text/plain".to_owned());
@@ -378,15 +381,85 @@ fn enrich_mime(plain_text: &str, display_server: Option<DisplayServer>) -> (Stri
     let best = pick_best_mime(&targets);
 
     match best.as_str() {
-        "text/html" | "text/uri-list" => {
-            if let Some(rich) = read_mime_content(&best, ds) {
-                return (rich, best);
+        "text/html" => {
+            if let Some(html) = read_mime_content(&best, ds) {
+                let clean = strip_html(&html);
+                // Only use the stripped version when it's non-empty.
+                if !clean.is_empty() {
+                    return (clean, "text/plain".to_owned());
+                }
+            }
+        }
+        "text/uri-list" => {
+            if let Some(uris) = read_mime_content(&best, ds) {
+                return (uris, best);
             }
         }
         _ => {}
     }
 
-    (plain_text.to_owned(), best)
+    (plain_text.to_owned(), "text/plain".to_owned())
+}
+
+/// Strip HTML tags and decode common entities, returning plain text.
+///
+/// Handles the simple subset that Electron/Slack produces:
+/// inline tags (`<a>`, `<b>`, `<br>`, etc.) and the five standard entities.
+pub(crate) fn strip_html(html: &str) -> String {
+    let mut out = String::with_capacity(html.len());
+    let mut in_tag = false;
+    let mut chars = html.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        match ch {
+            '<' => {
+                // Emit a space so text on either side of a stripped tag
+                // (e.g. <br>, <p>) doesn't get merged together.
+                out.push(' ');
+                in_tag = true;
+            }
+            '>' => in_tag = false,
+            '&' if !in_tag => {
+                // Collect up to the closing ';' (or give up after 8 chars).
+                let mut entity = String::new();
+                let mut found_semi = false;
+                for _ in 0..8 {
+                    match chars.peek() {
+                        Some(&';') => {
+                            chars.next();
+                            found_semi = true;
+                            break;
+                        }
+                        Some(_) => entity.push(chars.next().unwrap()),
+                        None => break,
+                    }
+                }
+                if found_semi {
+                    match entity.as_str() {
+                        "amp" => out.push('&'),
+                        "lt" => out.push('<'),
+                        "gt" => out.push('>'),
+                        "nbsp" => out.push(' '),
+                        "quot" => out.push('"'),
+                        "apos" => out.push('\''),
+                        _ => {
+                            out.push('&');
+                            out.push_str(&entity);
+                            out.push(';');
+                        }
+                    }
+                } else {
+                    out.push('&');
+                    out.push_str(&entity);
+                }
+            }
+            _ if !in_tag => out.push(ch),
+            _ => {}
+        }
+    }
+
+    // Collapse runs of whitespace (including \n from <br>) into single spaces.
+    out.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// Select the best MIME type from `targets` according to [`MIME_PRIORITY`].
@@ -537,6 +610,51 @@ mod tests {
             }
         }
         events
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // strip_html — pure function tests
+    // ─────────────────────────────────────────────────────────────────────────
+
+    #[test]
+    fn strip_html_removes_tags() {
+        assert_eq!(strip_html("<b>hello</b>"), "hello");
+    }
+
+    #[test]
+    fn strip_html_slack_email_link() {
+        let html = r#"<a href="mailto:user@example.com">National@2026</a>"#;
+        assert_eq!(strip_html(html), "National@2026");
+    }
+
+    #[test]
+    fn strip_html_decodes_entities() {
+        assert_eq!(strip_html("a &amp; b &lt;3 &gt; c"), "a & b <3 > c");
+        assert_eq!(strip_html("&quot;quoted&quot;"), "\"quoted\"");
+        assert_eq!(strip_html("it&apos;s"), "it's");
+    }
+
+    #[test]
+    fn strip_html_collapses_whitespace() {
+        assert_eq!(strip_html("foo  \n  bar"), "foo bar");
+    }
+
+    #[test]
+    fn strip_html_br_becomes_space() {
+        assert_eq!(
+            strip_html("line1<br>line2<br><br>line3"),
+            "line1 line2 line3"
+        );
+    }
+
+    #[test]
+    fn strip_html_plain_text_unchanged() {
+        assert_eq!(strip_html("plain text"), "plain text");
+    }
+
+    #[test]
+    fn strip_html_empty_input() {
+        assert_eq!(strip_html(""), "");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
