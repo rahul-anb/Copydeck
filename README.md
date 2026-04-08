@@ -32,6 +32,10 @@ copydeck install-service
 
 ```bash
 pip install copydeck
+
+# If your shell says "copydeck: command not found", add pip's bin directory to PATH:
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+
 copydeck install-service
 ```
 
