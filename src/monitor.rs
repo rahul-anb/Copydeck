@@ -368,10 +368,24 @@ const MIME_PRIORITY: &[&str] = &[
 ///   shows readable content rather than raw markup (e.g. Slack copies).
 /// - `text/uri-list` is stored as-is.
 /// - Everything else falls back to the plain text already read by arboard.
+///
+/// **Fast path:** if `plain_text` contains no HTML-tag-shaped characters
+/// (`<` and `>`) and no URI scheme (`://`), we skip the subprocess calls
+/// entirely and return it as plain text.  This avoids spawning `wl-paste`
+/// on every plain-text Ctrl+C copy — which caused a taskbar flash on
+/// GNOME/Wayland as the short-lived Wayland client briefly registered.
 fn enrich_mime(plain_text: &str, display_server: Option<DisplayServer>) -> (String, String) {
     let Some(ds) = display_server else {
         return (plain_text.to_owned(), "text/plain".to_owned());
     };
+
+    // Cheap heuristic — if plain text lacks any tag-shaped or URI-shaped
+    // content, skip the subprocess enrichment altogether.
+    let looks_like_html = plain_text.contains('<') && plain_text.contains('>');
+    let looks_like_uri = plain_text.contains("://");
+    if !looks_like_html && !looks_like_uri {
+        return (plain_text.to_owned(), "text/plain".to_owned());
+    }
 
     let targets = list_mime_targets(ds);
     if targets.is_empty() {

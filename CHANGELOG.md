@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-04-21
+
+### Changed
+- History rolling window default lowered to 100 entries.
+- Pinned items now cap at 20 with oldest-first rotation.
+- HTML from Slack and similar apps is now stripped to plain text on capture.
+- Pinned section in the popup grows naturally (up to 50 % of window height).
+- Source badge (`^C` / `❖C`) removed from history rows for a cleaner look.
+
+### Fixed
+- Taskbar flash on every Ctrl+C copy on GNOME/Wayland (no longer spawns
+  `wl-paste` for plain-text copies, and the GtkApplication no longer
+  registers with the shell's app tracker).
+- Stale default values in unit tests (popup width, font, paste delay).
+- PyPI publish workflow switched to API token auth.
+- README installation section clarified; added PATH fix for pip installs
+  and a "fresh system setup" checklist.
+
+### Added
+- `.deb` packaging via `cargo-deb` and a GitHub Release workflow that
+  publishes `.deb` assets on every version tag.
+- One-liner installer script (`install.sh`) for Debian/Ubuntu.
+
 ## [0.1.0] - 2026-03-28
 
 ### Added
@@ -30,5 +53,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI sub-commands: `start`, `stop`, `open`, `pause`, `resume`, `pin`, `history`, `install-service`.
 - Distributable as a Python wheel via `maturin` (no Python runtime required at run time).
 
-[Unreleased]: https://github.com/your-org/copydeck/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/your-org/copydeck/releases/tag/v0.1.0
+[Unreleased]: https://github.com/rahul-anb/Copydeck/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/rahul-anb/Copydeck/releases/tag/v0.1.1
+[0.1.0]: https://github.com/rahul-anb/Copydeck/releases/tag/v0.1.0

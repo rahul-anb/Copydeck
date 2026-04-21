@@ -249,6 +249,7 @@ impl CopyDeckDaemon {
         hotkey_manager: Option<HotkeyManager>,
         paused: Arc<AtomicBool>,
     ) -> Result<()> {
+        use gtk4::gio::ApplicationFlags;
         use gtk4::prelude::*;
         use gtk4::Application;
         // Use glib through gtk4 re-export so the version matches gtk4 0.7.
@@ -256,8 +257,13 @@ impl CopyDeckDaemon {
         use std::cell::RefCell;
         use std::rc::Rc;
 
+        // No application_id: we don't want GNOME Shell tracking us as a
+        // launchable app — that causes a brief taskbar flash on every
+        // clipboard event we process on the main thread.  Single-instance
+        // is enforced separately by the IPC socket lock (see `IpcServer`).
+        // NON_UNIQUE skips D-Bus name registration entirely.
         let app = Application::builder()
-            .application_id("io.copydeck.CopyDeck")
+            .flags(ApplicationFlags::NON_UNIQUE)
             .build();
 
         let db = Arc::clone(&self.db);
