@@ -85,8 +85,8 @@ enigo-paste = ["dep:enigo"]
 
 [package.metadata.deb]
 name                 = "copydeck"
-maintainer           = "CopyDeck Contributors"
-copyright            = "2026, CopyDeck Contributors"
+maintainer           = "Rahul Anbalagan <https://github.com/rahul-anb>"
+copyright            = "2026, Rahul Anbalagan"
 license-file         = ["LICENSE", "2"]
 extended-description = "A lightweight clipboard manager for Linux with persistent pinned items, keyboard navigation, and format preservation."
 depends              = "libgtk-4-1, xdotool, ydotool"

@@ -1,5 +1,10 @@
 # CopyDeck
 
+[![PyPI](https://img.shields.io/pypi/v/copydeck?label=pypi)](https://pypi.org/project/copydeck/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Made with Rust](https://img.shields.io/badge/made%20with-rust-orange)](https://www.rust-lang.org/)
+[![GTK4](https://img.shields.io/badge/UI-GTK4-blue)](https://www.gtk.org/)
+
 A lightweight clipboard manager for Linux with persistent pinned items, keyboard navigation, and format preservation.
 
 - **~5 MB memory** at idle — Rust binary, no interpreter overhead
@@ -165,6 +170,22 @@ Alternatively, add these manually in **GNOME Settings → Keyboard → Custom Sh
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Bug reports and feature requests are welcome — please use the
+[issue tracker](https://github.com/rahul-anb/Copydeck/issues).
+
+## Maintainer
+
+CopyDeck is a personal side project maintained by
+[Rahul Anbalagan](https://github.com/rahul-anb).
+It started as a way to explore Linux daemons, IPC, and the Wayland
+clipboard stack. Feedback and pull requests are welcome, but please note
+this is not a funded project — response times may vary.
+
+## Security
+
+If you discover a security issue, please open a private advisory on the
+GitHub repo rather than a public issue.
 
 ## License
 

@@ -13,18 +13,22 @@ up a development environment, run tests, and submit changes.
 ## Development setup
 
 ```bash
-git clone https://github.com/your-org/copydeck
-cd copydeck
+git clone https://github.com/rahul-anb/Copydeck
+cd Copydeck
 
-# Build in debug mode
+# Build in debug mode (CLI only, no GTK popup)
 cargo build
 
+# Build with the GTK4 popup (requires libgtk-4-dev)
+sudo apt install libgtk-4-dev
+cargo build --features ui
+
 # Run all tests
-cargo test
+cargo test --features ui
 
 # Check formatting and lints before committing
 cargo fmt --check
-cargo clippy --all-targets
+cargo clippy --all-targets --all-features
 ```
 
 ## Running the binary locally
