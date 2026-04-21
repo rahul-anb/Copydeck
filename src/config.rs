@@ -48,8 +48,14 @@ pub struct GeneralConfig {
     /// Maximum number of items kept in the rolling history.
     ///
     /// Oldest entries are deleted automatically when this limit is exceeded.
-    /// Default: `200`.
+    /// Default: `100`.
     pub history_limit: usize,
+
+    /// Maximum number of pinned items kept.
+    ///
+    /// When pinning a new item beyond this limit, the oldest pinned item
+    /// (by `pinned_at`) is automatically removed.  Default: `20`.
+    pub pin_limit: usize,
 
     /// Skip clipboard entries larger than this many kilobytes.
     ///
@@ -154,7 +160,8 @@ impl Default for Config {
 impl Default for GeneralConfig {
     fn default() -> Self {
         Self {
-            history_limit: 200,
+            history_limit: 100,
+            pin_limit: 20,
             content_size_limit_kb: 512,
         }
     }
@@ -305,7 +312,7 @@ mod tests {
     #[test]
     fn default_config_has_sensible_values() {
         let cfg = Config::default();
-        assert_eq!(cfg.general.history_limit, 200);
+        assert_eq!(cfg.general.history_limit, 100);
         assert_eq!(cfg.hotkeys.open_history, "super+c");
         assert_eq!(cfg.ui.theme, "auto");
         assert!(cfg.monitor.poll_interval_ms > 0);
@@ -315,7 +322,7 @@ mod tests {
     fn load_from_missing_file_returns_default() {
         let path = PathBuf::from("/tmp/copydeck_nonexistent_config.toml");
         let cfg = Config::load_from(&path).unwrap();
-        assert_eq!(cfg.general.history_limit, 200);
+        assert_eq!(cfg.general.history_limit, 100);
     }
 
     #[test]
@@ -324,7 +331,7 @@ mod tests {
         let cfg: Config = toml::from_str(toml).unwrap();
         assert_eq!(cfg.ui.theme, "dark");
         // Unset fields use their defaults.
-        assert_eq!(cfg.general.history_limit, 200);
+        assert_eq!(cfg.general.history_limit, 100);
         assert_eq!(cfg.hotkeys.open_and_paste, "super+shift+v");
     }
 

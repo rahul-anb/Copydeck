@@ -226,7 +226,8 @@ fn clear_history_removes_all_entries() {
 #[test]
 fn clear_history_does_not_affect_pins() {
     let db = db();
-    db.add_pin("pinned", "text/plain", Some("label")).unwrap();
+    db.add_pin("pinned", "text/plain", Some("label"), 100)
+        .unwrap();
     for i in 0..3 {
         insert(&db, &format!("h{i}"));
     }
@@ -242,7 +243,9 @@ fn clear_history_does_not_affect_pins() {
 #[test]
 fn add_pin_stores_content_and_label() {
     let db = db();
-    let id = db.add_pin("SELECT *", "text/plain", Some("SQL")).unwrap();
+    let id = db
+        .add_pin("SELECT *", "text/plain", Some("SQL"), 100)
+        .unwrap();
     assert!(id > 0);
 
     let pins = db.get_pins().unwrap();
@@ -254,7 +257,7 @@ fn add_pin_stores_content_and_label() {
 #[test]
 fn add_pin_without_label_stores_none() {
     let db = db();
-    db.add_pin("no label", "text/plain", None).unwrap();
+    db.add_pin("no label", "text/plain", None, 100).unwrap();
     let pins = db.get_pins().unwrap();
     assert!(pins[0].label.is_none());
 }
@@ -262,13 +265,36 @@ fn add_pin_without_label_stores_none() {
 #[test]
 fn add_pin_assigns_ascending_positions() {
     let db = db();
-    db.add_pin("a", "text/plain", None).unwrap();
-    db.add_pin("b", "text/plain", None).unwrap();
-    db.add_pin("c", "text/plain", None).unwrap();
+    db.add_pin("a", "text/plain", None, 100).unwrap();
+    db.add_pin("b", "text/plain", None, 100).unwrap();
+    db.add_pin("c", "text/plain", None, 100).unwrap();
 
     let pins = db.get_pins().unwrap();
     assert!(pins[0].position < pins[1].position);
     assert!(pins[1].position < pins[2].position);
+}
+
+#[test]
+fn add_pin_rotates_when_limit_exceeded() {
+    let db = db();
+    // Insert 5 pins with a limit of 3 — the 2 oldest must be dropped.
+    for i in 0..5 {
+        db.add_pin(&format!("pin {i}"), "text/plain", None, 3)
+            .unwrap();
+    }
+
+    let pins = db.get_pins().unwrap();
+    assert_eq!(pins.len(), 3, "pin_limit must cap total pins");
+
+    let contents: Vec<&str> = pins.iter().map(|p| p.content.as_str()).collect();
+    assert!(contents.contains(&"pin 2"));
+    assert!(contents.contains(&"pin 3"));
+    assert!(contents.contains(&"pin 4"));
+    assert!(!contents.contains(&"pin 0"), "oldest must be rotated out");
+    assert!(
+        !contents.contains(&"pin 1"),
+        "2nd oldest must be rotated out"
+    );
 }
 
 // ── remove_pin ────────────────────────────────────────────────────────────────
@@ -276,7 +302,7 @@ fn add_pin_assigns_ascending_positions() {
 #[test]
 fn remove_pin_deletes_item() {
     let db = db();
-    let id = db.add_pin("bye", "text/plain", None).unwrap();
+    let id = db.add_pin("bye", "text/plain", None, 100).unwrap();
     assert!(db.remove_pin(id).unwrap());
     assert!(db.get_pins().unwrap().is_empty());
 }
@@ -292,7 +318,9 @@ fn remove_pin_returns_false_for_missing_id() {
 #[test]
 fn update_pin_label_changes_label() {
     let db = db();
-    let id = db.add_pin("content", "text/plain", Some("old")).unwrap();
+    let id = db
+        .add_pin("content", "text/plain", Some("old"), 100)
+        .unwrap();
     assert!(db.update_pin_label(id, Some("new")).unwrap());
     assert_eq!(db.get_pins().unwrap()[0].label.as_deref(), Some("new"));
 }
@@ -300,7 +328,9 @@ fn update_pin_label_changes_label() {
 #[test]
 fn update_pin_label_can_clear_to_none() {
     let db = db();
-    let id = db.add_pin("c", "text/plain", Some("had label")).unwrap();
+    let id = db
+        .add_pin("c", "text/plain", Some("had label"), 100)
+        .unwrap();
     db.update_pin_label(id, None).unwrap();
     assert!(db.get_pins().unwrap()[0].label.is_none());
 }
@@ -316,9 +346,9 @@ fn update_pin_label_returns_false_for_missing_id() {
 #[test]
 fn reorder_pins_changes_display_order() {
     let db = db();
-    let a = db.add_pin("A", "text/plain", None).unwrap();
-    let b = db.add_pin("B", "text/plain", None).unwrap();
-    let c = db.add_pin("C", "text/plain", None).unwrap();
+    let a = db.add_pin("A", "text/plain", None, 100).unwrap();
+    let b = db.add_pin("B", "text/plain", None, 100).unwrap();
+    let c = db.add_pin("C", "text/plain", None, 100).unwrap();
 
     db.reorder_pins(&[c, b, a]).unwrap(); // reverse: C B A
 
@@ -333,9 +363,9 @@ fn reorder_pins_changes_display_order() {
 #[test]
 fn get_pins_returns_in_insertion_order_by_default() {
     let db = db();
-    db.add_pin("first", "text/plain", None).unwrap();
-    db.add_pin("second", "text/plain", None).unwrap();
-    db.add_pin("third", "text/plain", None).unwrap();
+    db.add_pin("first", "text/plain", None, 100).unwrap();
+    db.add_pin("second", "text/plain", None, 100).unwrap();
+    db.add_pin("third", "text/plain", None, 100).unwrap();
 
     let pins = db.get_pins().unwrap();
     assert_eq!(pins[0].content, "first");
@@ -369,7 +399,8 @@ fn ctrl_c_and_super_c_both_appear_in_history() {
 fn history_and_pins_are_independent_tables() {
     let db = db();
     insert(&db, "history item");
-    db.add_pin("pin item", "text/plain", Some("P")).unwrap();
+    db.add_pin("pin item", "text/plain", Some("P"), 100)
+        .unwrap();
 
     assert_eq!(db.get_history(10, 0).unwrap().len(), 1);
     assert_eq!(db.get_pins().unwrap().len(), 1);

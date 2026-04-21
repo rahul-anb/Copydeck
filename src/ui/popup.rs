@@ -46,6 +46,7 @@ pub struct CopyDeckPopup {
     paste_engine: Arc<PasteEngine>,
     ds: Option<DisplayServer>,
     ui_config: UiConfig,
+    pin_limit: usize,
     /// Window ID of the app that had focus before the popup opened.
     prev_window: Arc<Mutex<Option<u64>>>,
     paste_mode: Arc<Mutex<bool>>,
@@ -59,6 +60,7 @@ impl CopyDeckPopup {
         paste_engine: Arc<PasteEngine>,
         ds: Option<DisplayServer>,
         ui_config: &UiConfig,
+        pin_limit: usize,
     ) -> Self {
         // Load CSS.
         let css = CssProvider::new();
@@ -142,6 +144,7 @@ impl CopyDeckPopup {
             paste_engine,
             ds,
             ui_config: ui_config.clone(),
+            pin_limit,
             prev_window: Arc::new(Mutex::new(None)),
             paste_mode: Arc::new(Mutex::new(false)),
         };
@@ -424,11 +427,12 @@ impl CopyDeckPopup {
         if let Some(entry) = history_entry {
             let content = entry.content.clone();
             eprintln!("[copydeck] toggle_pin: calling add_pin");
-            let _ = self
-                .db
-                .lock()
-                .unwrap()
-                .add_pin(&entry.content, &entry.mime_type, None);
+            let _ = self.db.lock().unwrap().add_pin(
+                &entry.content,
+                &entry.mime_type,
+                None,
+                self.pin_limit,
+            );
             eprintln!("[copydeck] toggle_pin: add_pin done, scheduling idle");
             let popup = self.clone();
             glib::idle_add_local(move || {

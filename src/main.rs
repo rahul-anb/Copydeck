@@ -85,7 +85,12 @@ fn cmd_pin(sub: PinCommand) -> Result<()> {
     match sub {
         PinCommand::Add { content, label } => {
             info!(?label, "Pin add");
-            let id = db.add_pin(&content, "text/plain", label.as_deref())?;
+            let id = db.add_pin(
+                &content,
+                "text/plain",
+                label.as_deref(),
+                cfg.general.pin_limit,
+            )?;
             let display = label
                 .as_deref()
                 .unwrap_or_else(|| content.lines().next().unwrap_or(&content));
@@ -163,7 +168,12 @@ fn cmd_pin(sub: PinCommand) -> Result<()> {
                     skipped += 1;
                     continue;
                 }
-                db.add_pin(&item.content, &item.mime_type, item.label.as_deref())?;
+                db.add_pin(
+                    &item.content,
+                    &item.mime_type,
+                    item.label.as_deref(),
+                    cfg.general.pin_limit,
+                )?;
                 added += 1;
             }
 

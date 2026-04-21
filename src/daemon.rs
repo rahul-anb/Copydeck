@@ -286,6 +286,7 @@ impl CopyDeckDaemon {
                 Arc::clone(&paste_engine),
                 ds,
                 &config.ui,
+                config.general.pin_limit,
             );
 
             // Glib channel: bridge background monitor events to GTK thread.

@@ -256,7 +256,16 @@ impl StorageManager {
     ///
     /// The new item is appended at the end of the pinned list
     /// (highest `position` value + 1).
-    pub fn add_pin(&self, content: &str, mime_type: &str, label: Option<&str>) -> Result<i64> {
+    ///
+    /// **Rotation:** after inserting, pins beyond `limit` are deleted
+    /// (oldest `pinned_at` first) so the pinned list stays bounded.
+    pub fn add_pin(
+        &self,
+        content: &str,
+        mime_type: &str,
+        label: Option<&str>,
+        limit: usize,
+    ) -> Result<i64> {
         let now = unix_now();
         let next_pos: i64 = self
             .conn
@@ -272,8 +281,20 @@ impl StorageManager {
              VALUES (?1, ?2, ?3, ?4, ?5)",
             params![content, mime_type, label, now, next_pos],
         )?;
+        let id = self.conn.last_insert_rowid();
 
-        Ok(self.conn.last_insert_rowid())
+        // Rotate out the oldest pins once the limit is exceeded.
+        self.conn.execute(
+            "DELETE FROM pinned_items
+             WHERE id NOT IN (
+                 SELECT id FROM pinned_items
+                 ORDER BY pinned_at DESC, id DESC
+                 LIMIT ?1
+             )",
+            params![limit as i64],
+        )?;
+
+        Ok(id)
     }
 
     /// Remove a pinned item by ID.

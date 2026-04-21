@@ -34,8 +34,13 @@ fn write_temp_config(contents: &str) -> PathBuf {
 // ── Default values ────────────────────────────────────────────────────────────
 
 #[test]
-fn default_history_limit_is_200() {
-    assert_eq!(Config::default().general.history_limit, 200);
+fn default_history_limit_is_100() {
+    assert_eq!(Config::default().general.history_limit, 100);
+}
+
+#[test]
+fn default_pin_limit_is_20() {
+    assert_eq!(Config::default().general.pin_limit, 20);
 }
 
 #[test]
@@ -104,7 +109,7 @@ fn missing_config_file_returns_defaults() {
     let path = PathBuf::from("/tmp/copydeck_config_nonexistent_xyz.toml");
     let _ = std::fs::remove_file(&path);
     let cfg = Config::load_from(&path).unwrap();
-    assert_eq!(cfg.general.history_limit, 200);
+    assert_eq!(cfg.general.history_limit, 100);
     assert_eq!(cfg.hotkeys.open_history, "super+c");
 }
 
@@ -116,7 +121,7 @@ fn partial_toml_fills_missing_keys_with_defaults() {
     let cfg = Config::load_from(&path).unwrap();
     assert_eq!(cfg.ui.theme, "dark", "parsed key must match");
     assert_eq!(
-        cfg.general.history_limit, 200,
+        cfg.general.history_limit, 100,
         "missing key must use default"
     );
     assert_eq!(
